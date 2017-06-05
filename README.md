@@ -21,7 +21,7 @@ Atomic parsing expressions **e<sub>1</sub>** and **e<sub>2</sub>** can be combin
 6. And-predicate: &**e<sub>1</sub>**. Consumes no input.
 7. Not-predicate: !**e<sub>1</sub>**. Consumes no input.
 
-More detailed descriptions of these can be found [here](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
+More detailed descriptions (including prioritization) of these can be found [here](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
 
 
 All grammar rules follow this syntax:
