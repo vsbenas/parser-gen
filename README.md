@@ -25,7 +25,7 @@ grammar = [[
 program <- stmt-sequence;
 stmt-sequence <- statement (';' statement)*;
 statement <- if-stmt / repeat-stmt / assign-stmt / read-stmt / write-stmt;
-if-stmt <- 'if' exp 'ten' stmt-sequence ('else' stmt-sequence)? 'end';
+if-stmt <- 'if' exp 'then' stmt-sequence ('else' stmt-sequence)? 'end';
 repeat-stmt <- 'repeat' stmt-sequence 'until' exp;
 assign-stmt <- identifier ':=' exp;
 read-stmt <- 'read' identifier;
