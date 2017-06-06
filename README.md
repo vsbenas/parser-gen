@@ -2,6 +2,54 @@
 A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, the tool can also generate automatic errors for common idioms and generate recovery patterns using [LpegLabel](https://github.com/sqmedeiros/lpeglabel).
 
 ---
+### Syntax
+The main operation of the tool is *parse*:
+```lua
+parser-gen.parse(input, grammar [, errorfunction])
+```
+Arguments:
+
+*input* - the string to be parsed
+
+*grammar* - a PEG grammar, explained below
+
+*errorfunction* - optional, a function that will be called if an error is encountered, with the arguments *label* for the error label and *error* a short description of the error, *line* for the line in which the error was encountered and *col* for the column.
+
+Output:
+If the parse is succesful, the function returns an abstract syntax tree containing the captures. Otherwise, the function returns **nil**. If the grammar is invalid, the function throws a run-time error.
+
+Example: a parser for Tiny
+```lua
+pg = require "parser-gen"
+grammar = [[
+program <- stmt-sequence;
+stmt-sequence <- statement (';' statement)*;
+statement <- if-stmt / repeat-stmt / assign-stmt / read-stmt / write-stmt;
+if-stmt <- 'if' exp 'ten' stmt-sequence ('else' stmt-sequence)? 'end';
+repeat-stmt <- 'repeat' stmt-sequence 'until' exp;
+assign-stmt <- identifier ':=' exp;
+read-stmt <- 'read' identifier;
+write-stmt <- 'write' exp;
+exp <- simple-exp (COMPARISON-OP simple-exp)*;
+COMPARISON-OP <- '<' / '=';
+simple-exp <- term (ADD-OP term)*;
+ADD-OP <- '+' / '-';
+term <- factor (MUL-OP factor)*;
+MUL-OP <- '*' / '/';
+factor <- '(' exp ')' / NUMBER / IDENTIFIER;
+
+NUMBER <- '-'? [09]+;
+IDENTIFIER <- ([az] / [AZ])+;
+
+]]
+
+function printerror(label,error,line,col)
+  print("Error #"..label..": "..error.." on line "..line.."(col "..col..")")
+end
+input = "a:=1; if b=3 then c else d end"
+result = pg.parse(input,grammar,printerror)
+```
+
 ### Grammar
 The grammar used for this tool is described using PEG-like syntax with some additional restrictions, explained below.
 
@@ -62,7 +110,6 @@ For some programming languages it might be useful to skip to a semicolon, by add
 ```lua
 SYNC <- ';' / '\n' / '\r'
 ```
-### Syntax
 
 
 
