@@ -93,7 +93,7 @@ Comments in the grammar can be written using the same way as in [Lua](https://ww
 
 **Special rules**
 
-*SPACES* defines the different symbols that the parser skips around tokens. It is by default defined as:
+*SPACES* defines the different symbols that the parser skips around tokens (and terminals in non-token rules). It is by default defined as:
 ```lua
 SPACES <- ' ' / '\n' / '\r'
 ```
