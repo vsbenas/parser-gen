@@ -58,6 +58,7 @@ The grammar used for this tool is described using PEG-like syntax with some addi
 1. Terminal symbols are represented using single quotes. ``'abc'`` matches the string "abc", ``'\''`` matches the literal single quote "'". It is also possible to define ranges of symbols using square brackets: ``[az]`` is going to match any lower-case letter.
 2. Non-terminal symbols are represented using alphanumeric strings, with tokens named in all capital letters(A-Z).
 3. The empty string is represented using two single quotation marks. ``''``
+4. End of file is described by the acronym ``EOF``.
 
 Atomic parsing expressions **e<sub>1</sub>** and **e<sub>2</sub>** can be combined:
 
@@ -68,6 +69,7 @@ Atomic parsing expressions **e<sub>1</sub>** and **e<sub>2</sub>** can be combin
 5. Optional: **e<sub>1</sub>**?
 6. And-predicate: &**e<sub>1</sub>**. Consumes no input.
 7. Not-predicate: !**e<sub>1</sub>**. Consumes no input.
+8. Error label: **e<sub>1</sub>**^{errorName}. Note that errors are generated automatically, but can be added to the grammar and will have precedence over the automatically generated ones.
 
 More detailed descriptions (including prioritization) of these can be found [here](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
 
