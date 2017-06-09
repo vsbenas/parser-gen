@@ -25,18 +25,19 @@ grammar = [[
 ]]
 
 local function printerror(label,error,line,col)
-  print("Error #"..label..": "..error.." on line "..line.."(col "..col..")")
+print("Error #"..label..": "..error.." on line "..line.."(col "..col..")")
 end
 
 ret = {}
 
 local function ret.parse(input)
-  result, errors = pg.parse(input,grammar,printerror)
+	result, errors = pg.parse(input,grammar,printerror)
+	return result, errors
 end
 
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	ret.parse(arg[1])
+	print(ret.parse(arg[1]))
 end
 
 return ret
