@@ -95,7 +95,7 @@ Comments in the grammar can be written using the same way as in [Lua](https://ww
 
 *SPACES* defines the different symbols that the parser skips around tokens (and terminals in non-token rules). It is by default defined as:
 ```lua
-SPACES <- ' ' / '\n' / '\r'
+SPACES <- ' ' / '\n' / '\r' / '\t'
 ```
 The rule can be overwritten by adding it to the grammar, the example below will NOT consume spaces around tokens:
 ```lua
