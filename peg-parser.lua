@@ -1,16 +1,13 @@
-local lpeg = require "lpeglabel"
+local lpeg = require "lpeg-funcs"
 local peg = {}
-lpeg.locale(lpeg)
 
-local P, V, C, Ct, R, S, B, Cmt = lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.R, lpeg.S, lpeg.B, lpeg.Cmt -- for lpeg
+local P, V = lpeg.P, lpeg.V
 local T = lpeg.T -- lpeglabel
-local space = lpeg.space
-local alpha = lpeg.alpha
 
-
-local grammar = P {
-	"program",
-	program = P(1),
+local grammar = lpeg.P {
+	"G",
+	G = lpeg.Skip * Rule^1,
+	
 }
 
 --[[
@@ -33,8 +30,13 @@ Example output: {
 The rules are further processed and turned into lpeg compatible format in parser-gen.lua
 
 ]]--
-function peg.parse(input)
-	return input
+function peg.pegToAST(input)
+	return grammar:match(input)
+end
+
+if arg[1] then	
+	-- argument must be in quotes if it contains spaces
+	lpeg.print_r(peg.pegToAST(arg[1]));
 end
 
 return peg
