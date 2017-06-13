@@ -51,7 +51,7 @@ result = pg.parse(input,grammar,printerror)
 ```
 
 ### Grammar
-The grammar used for this tool is described using PEG-like syntax with some additional restrictions, explained below.
+The grammar used for this tool is described using PEG-like syntax, that is identical to [relabel](http://www.inf.puc-rio.br/~roberto/lpeg/re.html)
 
 **Atomic parsing expressions**
 
@@ -69,7 +69,7 @@ Atomic parsing expressions **e<sub>1</sub>** and **e<sub>2</sub>** can be combin
 5. Optional: **e<sub>1</sub>**?
 6. And-predicate: &**e<sub>1</sub>**. Consumes no input.
 7. Not-predicate: !**e<sub>1</sub>**. Consumes no input.
-8. Error label: **e<sub>1</sub>**^{errorName}. Note that errors are generated automatically, but can be added to the grammar and will have precedence over the automatically generated ones.
+8. Error label: %{errorName}. Note that errors are generated automatically, but can be added to the grammar and will have precedence over the automatically generated ones.
 
 More detailed descriptions (including prioritization) of these can be found [here](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
 
