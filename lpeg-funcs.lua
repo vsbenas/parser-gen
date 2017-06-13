@@ -13,11 +13,11 @@ end
 lpeg.Skip = (space)^0
 
 function lpeg.setSpace(patt)
-	Skip = patt^0
+	lpeg.Skip = patt^0
 end
 
 function lpeg.token (patt)
-	return patt * Skip
+	return patt * lpeg.Skip
 end
 
 
@@ -26,7 +26,7 @@ function lpeg.sym (str)
 end
 
 function lpeg.kw (str)
-	return token(P(str))
+	return lpeg.token(P(str))
 end
 
 
