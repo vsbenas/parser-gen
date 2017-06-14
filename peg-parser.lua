@@ -83,7 +83,7 @@ end
 
 re = require "re"
 
-testgram = [[
+testgram =  [[
 
 	program <- stmtsequence
 	stmtsequence <- statement (';' statement)*
@@ -103,8 +103,10 @@ testgram = [[
 
 	NUMBER <- '-'? [0-9]+
 	IDENTIFIER <- [a-zA-Z]+
-
+	
+	
 ]]
+
 
 --g = re.compile(testgram)
 
@@ -122,23 +124,48 @@ local function tpr(action,op1,op2)
 end
 
 
-local S = lpeg.Skip
-local m = lpeg
-local grammar = m.P { "Exp",
-	Exp = S * (m.V"Grammar" + m.Ct((m.V"Seq")));
-}
-local reg = re.compile [[
+p = re.compile [=[
 
-	gram <- {| S ({|rule|} S)+ |}
-	rule <- {:rulename: [^<]+ :} S '<-' S {:rule: {| ruleexp |} :} S
-	ruleexp <- {| {:action: ''->'or' :} {:op1: seq :} S '/' {:op2: ruleexp :}  |}
-				/ seq
-	seq <- {[^%nl/]+}
-	S <- (%s / %nl)*
+pattern         <- exp !.
+exp             <- S (grammar / alternative)
 
+alternative     <- {| {:action: ''->'or':} {:op1: seq :} '/' S {:op2: alternative:} |}
+					/ seq
+seq             <- {| {:action: ''->'and':} {:op1: prefix :} {:op2: seq:} |}
+					/ prefix
+prefix          <- '&' S prefix / '!' S prefix / suffix
+suffix          <- primary S (([+*?]
+                            / '^' [+-]? num
+                            / '->' S (string / '{}' / name)
+                            / '=>' S name) S)*
 
-]]
-res = reg:match(testgram)
+primary         <- '(' exp ')' / string / class / defined
+                 / '{:' (name ':')? exp ':}'
+                 / '=' name
+                 / '{}'
+                 / '{~' exp '~}'
+                 / '{' exp '}'
+                 / '.'
+                 / name S !arrow
+                 / '<' name '>'          -- old-style non terminals
+
+grammar         <- {| definition+ |}
+definition      <- {| {:rulename: name :} S arrow {:rule: exp :} |}
+
+class           <- '[' '^'? item (!']' item)* ']'
+item            <- defined / range / .
+range           <- . '-' [^]]
+
+S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
+name            <- [A-Za-z][A-Za-z0-9_]*
+arrow           <- '<-'
+num             <- [0-9]+
+string          <- '"' [^"]* '"' / "'" [^']* "'"
+defined         <- '%' name
+
+]=]
+--
+res = p:match(testgram)
 print(res);
 lpeg.print_r(res);
 --print(grammar:match(testgram))
