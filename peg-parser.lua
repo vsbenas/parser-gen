@@ -81,9 +81,9 @@ end
 
 -- end
 
-re = require "relabel"
+re = require "re"
 
-g = re.compile [[
+testgram = [[
 
 	program <- stmtsequence
 	stmtsequence <- statement (';' statement)*
@@ -106,14 +106,42 @@ g = re.compile [[
 
 ]]
 
-print(g:match("a:=1;ifcthendend"))
+--g = re.compile(testgram)
 
-local grammar = lpeg.P {
-	"G",
-	G = lpeg.Skip * V "Rule"^1,
-	Rule = V "RuleName" * kw("<-") * V "RuleName",
-	RuleName = token(P"1")
+--print(g:match("a:=1;ifcthendend"))
+
+local function tp(rulename, rule)
+	print("{rulename = "..rulename..", rule = "..rule.."}")
+end
+local function tpr(action,op1,op2)
+	if op2 then
+		print("{action = "..action..", op1 = "..op1..", op2 = "..op2.."}")
+	else
+		print("{action = "..action..", op1 = "..op1.."}")
+	end
+end
+
+
+local S = lpeg.Skip
+local m = lpeg
+local grammar = m.P { "Exp",
+	Exp = S * (m.V"Grammar" + m.Ct((m.V"Seq")));
 }
+local reg = re.compile [[
+
+	gram <- {| S ({|rule|} S)+ |}
+	rule <- {:rulename: [^<]+ :} S '<-' S {:rule: {| ruleexp |} :} S
+	ruleexp <- {| {:action: ''->'or' :} {:op1: seq :} S '/' {:op2: ruleexp :}  |}
+				/ seq
+	seq <- {[^%nl/]+}
+	S <- (%s / %nl)*
+
+
+]]
+res = reg:match(testgram)
+print(res);
+lpeg.print_r(res);
+--print(grammar:match(testgram))
 
 --[[
 Function: parse(input)
