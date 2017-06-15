@@ -67,10 +67,26 @@ end
 -- end
 
 
+local sb = nil
+function init (capture)
+	sb = capture
+	return capture
+end
+function fold (captures,secondary) 
+	temp = sb
+	if captures == "->" or captures == "->" or captures == "^" then
+		sb = {action=captures, op1=temp, op2=secondary}
+	else
+		sb = {action=captures, op1=temp}
+	end
+	return true
+end
+function returnsb(captures)
+	return sb
+end
 
 
-
-local p = re.compile [=[
+local gram = [=[
 
 pattern         <- exp !.
 exp             <- S (grammar / alternative)
@@ -82,20 +98,28 @@ seq             <- {| {:action: ''->'and':} {:op1: prefix :} {:op2: seq:} |}
 prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
 					/ {| {:action: '!' :} S {:op1: prefix :} |}
 					/ suffix
-suffix			<- {| {:op1: primary :} S {:action: suffixactions :} |} 
+					
+					
+suffix			<- ((primary -> init) S (suffixaction -> fold)+ ) -> returnsb
 					/ primary S
-suffixactions	<- { (([+*?]
-                            / '^' [+-]? num
-                            / '->' S (string / '{}' / name)
-                            / '=>' S name) S)+ } -- needs to be improved
+					
 
+suffixaction	<- 	((		{[+*?]}
+                            / {'^'} {[+-]? num}
+                            / {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / name)
+                            / {'=>'} S name) S )
+							
+							
+
+							
 primary         <- '(' exp ')' / string / class / defined
-                 / '{:' (name ':')? exp ':}'
-                 / '=' name
-                 / '{}'
-                 / '{~' exp '~}'
-                 / '{' exp '}'
-                 / '.'
+                 / {| '{:' {:action:''->'gcap':} ({:op1: name:} ':')? {:op2:exp:} ':}' |}
+                 / {| '=' {:action:''->'bref':} {:op1: name:} |}
+                 / {| '{}' {:action:''->'poscap':} |}
+                 / {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
+				 / {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
+                 / {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
+                 / {| '.' {:action:''->'anychar':} |}
                  / name S !arrow
                  / '<' name '>'          -- old-style non terminals
 
@@ -116,10 +140,22 @@ namenocap		<- [A-Za-z][A-Za-z0-9_]*
 arrow           <- '<-'
 num             <- [0-9]+
 string          <- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
-defined         <- '%' name
+defined         <- {| {:action: '%':} {:op1: name :} |}
 
 ]=]
 
+
+
+local p = re.compile ( gram, {fold = fold, returnsb = returnsb, init = init})
+--[[
+
+a+ -> hello
+
+{action = "->", op1={action ="+", op1={nt="a"}, op2 = {nt="hello"}}
+
+							
+					
+]]--
 
 --[[
 Function: pegToAST(input)
@@ -144,14 +180,54 @@ Example output: {
 
 The rules are further processed and turned into lpeg compatible format in parser-gen.lua
 
+Action names:
+or
+and
+&
+!
++
+*
+?
+^num (num is a number with an optional plus or minus sign)
+->
+=>
+tcap
+gcap (op1= name, anonymous otherwise)
+bref
+poscap
+subcap
+scap
+anychar
+%
+
 ]]--
 function peg.pegToAST(input)
 	return p:match(input)
 end
+local testgram = [[
+	program <- stmtsequence
+	stmtsequence <- statement (';' statement)*
+	statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
+	ifstmt <- 'if' exp 'then' stmtsequence ('else' stmtsequence)? 'end'
+	repeatstmt <- 'repeat' stmtsequence 'until' exp
+	assignstmt <- IDENTIFIER ':=' exp
+	readstmt <- 'read' IDENTIFIER
+	writestmt <- 'write' exp
+	exp <- simpleexp (COMPARISONOP simpleexp)*
+	COMPARISONOP <- '<' / '='
+	simpleexp <- term (ADDOP term)*
+	ADDOP <- '+' / '-'
+	term <- factor (MULOP factor)*
+	MULOP <- '*' / '/'
+	factor <- '(' exp ')' / NUMBER / IDENTIFIER
 
+	NUMBER <- '-'? [0-9]+
+	IDENTIFIER <- [a-zA-Z]+
+	
+]]
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	lpeg.print_r(peg.pegToAST(arg[1]));
+	lpeg.print_r(peg.pegToAST(testgram))
 end
 
 return peg
