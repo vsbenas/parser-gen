@@ -202,9 +202,12 @@ anychar
 
 ]]--
 function peg.pegToAST(input)
+	-- check syntax of input
+	result = re.compile(input) -- should throw a runtime error for a bad input
 	return p:match(input)
 end
-local testgram = [[
+--[[
+local testgram = 
 	program <- stmtsequence
 	stmtsequence <- statement (';' statement)*
 	statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
@@ -223,11 +226,12 @@ local testgram = [[
 
 	NUMBER <- '-'? [0-9]+
 	IDENTIFIER <- [a-zA-Z]+
-	
-]]
+
+
+]]--
+
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	lpeg.print_r(peg.pegToAST(testgram))
+	lpeg.print_r(peg.pegToAST(arg[1]))
 end
-
 return peg
