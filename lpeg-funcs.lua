@@ -49,7 +49,7 @@ function lpeg.print_r ( t )  -- for debugging
             if (type(t)=="table") then
                 for pos,val in pairs(t) do
                     if (type(val)=="table") then
-                        print(indent.."["..pos.."] => "..tostring(t).." {")
+                        print(indent.."["..pos.."] => {")
                         sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
                         print(indent..string.rep(" ",string.len(pos)+6).."}")
                     else
@@ -61,7 +61,7 @@ function lpeg.print_r ( t )  -- for debugging
             end
         end
     end
-    sub_print_r(t,"  ")
+    sub_print_r(t,"")
 end
 
 return lpeg

@@ -15,8 +15,8 @@ local mm = m
 
 -- pattern's metatable
 local mt = getmetatable(mm.P(0))
-test = require "lpeg-funcs"
-test.print_r(mt)
+
+
 
 -- No more global accesses after this point
 local version = _VERSION

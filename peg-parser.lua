@@ -1,10 +1,7 @@
 local lpeg = require "lpeg-funcs"
+local re = require "relabel"
+
 local peg = {}
-
-local P, V = lpeg.P, lpeg.V
-local T = lpeg.T -- lpeglabel
-local token, kw = lpeg.token, lpeg.kw
-
 
 
 -- imported from relabel.lua :
@@ -67,64 +64,13 @@ for i, err in ipairs(errinfo) do
   labels[err[1]] = i
 end
 
-
-local function expect (pattern, labelname)
-  local label = labels[labelname]
-  local record = function (input, pos, syntaxerrs)
-    table.insert(syntaxerrs, { label = label, pos = pos })
-    return true
-  end
-  return pattern + lpeg.Cmt(lpeg.Carg(2), record) * lpeg.T(label)
-end
-
-
-
 -- end
 
-re = require "re"
-
-testgram =  [[
-
-	program <- stmtsequence
-	stmtsequence <- statement (';' statement)*
-	statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
-	ifstmt <- 'if' exp 'then' stmtsequence ('else' stmtsequence)? 'end'
-	repeatstmt <- 'repeat' stmtsequence 'until' exp
-	assignstmt <- IDENTIFIER ':=' exp
-	readstmt <- 'read' IDENTIFIER
-	writestmt <- 'write' exp
-	exp <- simpleexp (COMPARISONOP simpleexp)*
-	COMPARISONOP <- '<' / '='
-	simpleexp <- term (ADDOP term)*
-	ADDOP <- '+' / '-'
-	term <- factor (MULOP factor)*
-	MULOP <- '*' / '/'
-	factor <- '(' exp ')' / NUMBER / IDENTIFIER
-
-	NUMBER <- '-'? [0-9]+
-	IDENTIFIER <- [a-zA-Z]+
-	
-	
-]]
 
 
---g = re.compile(testgram)
-
---print(g:match("a:=1;ifcthendend"))
-
-local function tp(rulename, rule)
-	print("{rulename = "..rulename..", rule = "..rule.."}")
-end
-local function tpr(action,op1,op2)
-	if op2 then
-		print("{action = "..action..", op1 = "..op1..", op2 = "..op2.."}")
-	else
-		print("{action = "..action..", op1 = "..op1.."}")
-	end
-end
 
 
-p = re.compile [=[
+local p = re.compile [=[
 
 pattern         <- exp !.
 exp             <- S (grammar / alternative)
@@ -133,11 +79,15 @@ alternative     <- {| {:action: ''->'or':} {:op1: seq :} '/' S {:op2: alternativ
 					/ seq
 seq             <- {| {:action: ''->'and':} {:op1: prefix :} {:op2: seq:} |}
 					/ prefix
-prefix          <- '&' S prefix / '!' S prefix / suffix
-suffix          <- primary S (([+*?]
+prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
+					/ {| {:action: '!' :} S {:op1: prefix :} |}
+					/ suffix
+suffix			<- {| {:op1: primary :} S {:action: suffixactions :} |} 
+					/ primary S
+suffixactions	<- { (([+*?]
                             / '^' [+-]? num
                             / '->' S (string / '{}' / name)
-                            / '=>' S name) S)*
+                            / '=>' S name) S)+ } -- needs to be improved
 
 primary         <- '(' exp ')' / string / class / defined
                  / '{:' (name ':')? exp ':}'
@@ -150,48 +100,53 @@ primary         <- '(' exp ')' / string / class / defined
                  / '<' name '>'          -- old-style non terminals
 
 grammar         <- {| definition+ |}
-definition      <- {| {:rulename: name :} S arrow {:rule: exp :} |}
+definition      <- {| (token  S arrow {:rule: exp :}) 
+						/ (nontoken  S arrow {:rule: exp :}) |}
 
-class           <- '[' '^'? item (!']' item)* ']'
+token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
+nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
+
+class           <- {| {:r: '[' '^'? item (!']' item)* ']':} |}
 item            <- defined / range / .
 range           <- . '-' [^]]
 
 S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
-name            <- [A-Za-z][A-Za-z0-9_]*
+name            <- {| {:nt: [A-Z]+:} {:token:''->'1':} / {:nt: [A-Za-z][A-Za-z0-9_]* :} |}
+namenocap		<- [A-Za-z][A-Za-z0-9_]*
 arrow           <- '<-'
 num             <- [0-9]+
-string          <- '"' [^"]* '"' / "'" [^']* "'"
+string          <- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 defined         <- '%' name
 
 ]=]
---
-res = p:match(testgram)
-print(res);
-lpeg.print_r(res);
---print(grammar:match(testgram))
+
 
 --[[
-Function: parse(input)
+Function: pegToAST(input)
 
 Input: a grammar in PEG format, described in https://github.com/vsbenas/parser-gen
 
 Output: if parsing successful - a table of grammar rules, else - runtime error
 
-Example input: 	"Program <- stmt* / SPACE;
-		stmt <- ('a' / 'b')+;
-		SPACE <- '';"
-Example output: {
-	{rulename = "Program", 	rule = {action = "or", op1 = {action = "zero-or-more", op1 = "stmt"}, op2 = "SPACE"}},
-	{rulename = "stmt", 	rule = {action = "one-or-more", op1 = {action="or", op1 = "'a'", op2 = 'b'}},
-	{rulename = "SPACE",	rule = "''", token=1},
+Example input: 	"
 
+	Program <- stmt* / SPACE
+	stmt <- ('a' / 'b')+
+	SPACE <- ''
+		
+"
+
+Example output: {
+	{rulename = "Program",	rule = {action = "or", op1 = {action = "*", op1 = {nt = "stmt"}}, op2 = {nt = "SPACE", token="1"}}},
+	{rulename = "stmt", 	rule = {action = "+", op1 = {action="or", op1 = {t = "a"}, op2 = {t = "b"}}}},
+	{rulename = "SPACE",	rule = {t=""}, token=1},
 }
 
 The rules are further processed and turned into lpeg compatible format in parser-gen.lua
 
 ]]--
 function peg.pegToAST(input)
-	return grammar:match(input)
+	return p:match(input)
 end
 
 if arg[1] then	
