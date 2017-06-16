@@ -83,6 +83,10 @@ function foldtable(action,t)
 				else
 					re = {action=act, op1=temp, op2=value[2]}
 				end
+			elseif action == "or" and #value == 2 then -- recovery expression
+				local labels = value[1]
+				local op2 = value[2]
+				re = {action=action, op1=temp, op2=op2, condition=labels}
 			else
 				re = {action=action, op1=temp, op2=value}
 			end
@@ -97,40 +101,47 @@ local gram = [=[
 pattern         <- exp !.
 exp             <- S (grammar / alternative)
 
-alternative     <- ( {:''->'or':} {| {: seq :} ('/' S {: seq :})* |} ) -> foldtable
+labels			<- {| '{' {: label :} (',' {: label :})* '}' |}
 
-seq             <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
+
+alternative		<- ( {:''->'or':} {| {: seq :} ('/' ('/' {| {: labels :} S {: seq :} |} / S {: seq :} ) )* |} ) -> foldtable
+
+
+seq		        <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
 
 
 prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
-					/ {| {:action: '!' :} S {:op1: prefix :} |}
-					/ suffix
+				/ {| {:action: '!' :} S {:op1: prefix :} |}
+				/ suffix
 
 suffix			<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
-					
+
 
 suffixaction	<- 	((		{[+*?]}
-                            / {'^'} {[+-]? num}
-                            / {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / name)
-                            / {'=>'} S name) S )
-							
-							
+				/ {'^'} {[+-]? num}
+				/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / name)
+				/ {'=>'} S name) S )
 
-							
+
+
+
 primary         <- '(' exp ')' / string / class / defined
-                 / {| '{:' {:action:''->'gcap':} ({:op1: name:} ':')? {:op2:exp:} ':}' |}
-                 / {| '=' {:action:''->'bref':} {:op1: name:} |}
-                 / {| '{}' {:action:''->'poscap':} |}
-                 / {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
-				 / {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
-                 / {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
-                 / {| '.' {:action:''->'anychar':} |}
-                 / name S !arrow
-                 / '<' name '>'          -- old-style non terminals
+				/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
+				/ {| '{:' {:action:''->'gcap':} ({:op1: name:} ':')? {:op2:exp:} ':}' |}
+				/ {| '=' {:action:''->'bref':} {:op1: name:} |}
+				/ {| '{}' {:action:''->'poscap':} |}
+				/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
+				/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
+				/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
+				/ {| '.' {:action:''->'anychar':} |}
+				/ name S !arrow
+				/ '<' name '>'          -- old-style non terminals
 
 grammar         <- {| definition+ |}
 definition      <- {| (token  S arrow {:rule: exp :}) 
-						/ (nontoken  S arrow {:rule: exp :}) |}
+				/ (nontoken  S arrow {:rule: exp :}) |}
+
+label			<- num / errorname -> tlabels
 
 token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
 nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
@@ -141,6 +152,8 @@ range           <- . '-' [^]]
 
 S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
 name            <- {| {:nt: [A-Z]+:} {:token:''->'1':} / {:nt: [A-Za-z][A-Za-z0-9_]* :} |}
+errorname		<- [A-Za-z][A-Za-z0-9_]*
+
 namenocap		<- [A-Za-z][A-Za-z0-9_]*
 arrow           <- '<-'
 num             <- [0-9]+
@@ -150,8 +163,14 @@ defined         <- {| {:action: '%':} {:op1: name :} |}
 ]=]
 
 
-
-local p = re.compile ( gram, {foldtable=foldtable})
+local labels = {err=3, ok=2}
+function tlabels(name)
+	if not labels[name] then
+		error("Error name '"..name.."' undefined!")
+	end
+	return labels[name]
+end
+local p = re.compile ( gram, {foldtable=foldtable, tlabels=tlabels})
 --[[
 
 a+ -> hello
@@ -186,7 +205,7 @@ Example output: {
 The rules are further processed and turned into lpeg compatible format in parser-gen.lua
 
 Action names:
-or
+or (has parameter condition for recovery expresions)
 and
 &
 !
@@ -203,6 +222,8 @@ poscap
 subcap
 scap
 anychar
+label
+rec
 %
 
 ]]--
