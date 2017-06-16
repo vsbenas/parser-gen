@@ -232,6 +232,6 @@ res = {
 
 assert(equals(e,res))
 
-
+-- todo: check prioritization(should be ok because rules correspond to the lpeg grammar of re)
 
 print("all tests succesful")
