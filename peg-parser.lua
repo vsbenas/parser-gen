@@ -127,7 +127,7 @@ suffixaction	<- 	((		{[+*?]}
 
 primary         <- '(' exp ')' / string / class / defined
 				/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
-				/ {| '{:' {:action:''->'gcap':} ({:op1: name:} ':')? {:op2:exp:} ':}' |}
+				/ {| '{:' {:action:''->'gcap':} ({:op2: name:} ':')? {:op1:exp:} ':}' |}
 				/ {| '=' {:action:''->'bref':} {:op1: name:} |}
 				/ {| '{}' {:action:''->'poscap':} |}
 				/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
@@ -216,7 +216,7 @@ and
 ->
 =>
 tcap
-gcap (op1= name, anonymous otherwise)
+gcap (op2= name, anonymous otherwise)
 bref
 poscap
 subcap
