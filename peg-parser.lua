@@ -155,7 +155,6 @@ subcap
 scap
 anychar
 label
-rec
 %
 
 ]]--
