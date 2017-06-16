@@ -106,18 +106,12 @@ function tlabels(name)
 	if not labels[name] then
 		error("Error name '"..name.."' undefined!")
 	end
-	return labels[name]
+	return tostring(labels[name])
 end
 local p = re.compile ( gram, {foldtable=foldtable, tlabels=tlabels})
---[[
 
-a+ -> hello
 
-{action = "->", op1={action ="+", op1={nt="a"}, op2 = {nt="hello"}}
 
-							
-					
-]]--
 
 --[[
 Function: pegToAST(input)
@@ -168,27 +162,9 @@ rec
 function peg.pegToAST(input)
 	return p:match(input)
 end
-local testgram = [[
-	program <- stmtsequence
-	stmtsequence <- statement (';' statement)*
-	statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
-	ifstmt <- 'if' exp 'then' stmtsequence ('else' stmtsequence)? 'end'
-	repeatstmt <- 'repeat' stmtsequence 'until' exp
-	assignstmt <- IDENTIFIER ':=' exp
-	readstmt <- 'read' IDENTIFIER
-	writestmt <- 'write' exp
-	exp <- simpleexp (COMPARISONOP simpleexp)*
-	COMPARISONOP <- '<' / '='
-	simpleexp <- term (ADDOP term)*
-	ADDOP <- '+' / '-'
-	term <- factor (MULOP factor)*
-	MULOP <- '*' / '/'
-	factor <- '(' exp ')' / NUMBER / IDENTIFIER
-
-	NUMBER <- '-'? [0-9]+
-	IDENTIFIER <- [a-zA-Z]+
-	
-]]
+function peg.setLabels(input)
+	labels=input
+end
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
 	lpeg.print_r(peg.pegToAST(arg[1]))

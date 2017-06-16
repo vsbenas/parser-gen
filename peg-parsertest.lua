@@ -232,6 +232,26 @@ res = {
 
 assert(equals(e,res))
 
+-- error labels
+-- %{errName}
+
+peg.setLabels({errName=1})
+e = f('%{errName}')
+
+res = {action="label", op1="1"}
+
+assert(equals(e,res))
+
+-- a //{errName,errName2} b
+
+peg.setLabels({errName=1, errName2=2})
+e = f('a //{errName,errName2} b')
+
+res = {action="or", condition={"1","2"}, op1={nt="a"}, op2={nt="b"}}
+
+
+assert(equals(e,res))
+
 -- todo: check prioritization(should be ok because rules correspond to the lpeg grammar of re)
 
 print("all tests succesful")
