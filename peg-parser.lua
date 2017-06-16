@@ -4,69 +4,6 @@ local re = require "relabel"
 local peg = {}
 
 
--- imported from relabel.lua :
-
-
-local errinfo = {
-  {"NoPatt", "no pattern found"},
-  {"ExtraChars", "unexpected characters after the pattern"},
-
-  {"ExpPatt1", "expected a pattern after '/' or the label(s)"},
-
-  {"ExpPatt2", "expected a pattern after '&'"},
-  {"ExpPatt3", "expected a pattern after '!'"},
-
-  {"ExpPatt4", "expected a pattern after '('"},
-  {"ExpPatt5", "expected a pattern after ':'"},
-  {"ExpPatt6", "expected a pattern after '{~'"},
-  {"ExpPatt7", "expected a pattern after '{|'"},
-
-  {"ExpPatt8", "expected a pattern after '<-'"},
-
-  {"ExpPattOrClose", "expected a pattern or closing '}' after '{'"},
-
-  {"ExpNum", "expected a number after '^', '+' or '-' (no space)"},
-  {"ExpCap", "expected a string, number, '{}' or name after '->'"},
-
-  {"ExpName1", "expected the name of a rule after '=>'"},
-  {"ExpName2", "expected the name of a rule after '=' (no space)"},
-  {"ExpName3", "expected the name of a rule after '<' (no space)"},
-
-  {"ExpLab1", "expected at least one label after '{'"},
-  {"ExpLab2", "expected a label after the comma"},
-
-  {"ExpNameOrLab", "expected a name or label after '%' (no space)"},
-
-  {"ExpItem", "expected at least one item after '[' or '^'"},
-
-  {"MisClose1", "missing closing ')'"},
-  {"MisClose2", "missing closing ':}'"},
-  {"MisClose3", "missing closing '~}'"},
-  {"MisClose4", "missing closing '|}'"},
-  {"MisClose5", "missing closing '}'"},  -- for the captures
-
-  {"MisClose6", "missing closing '>'"},
-  {"MisClose7", "missing closing '}'"},  -- for the labels
-
-  {"MisClose8", "missing closing ']'"},
-
-  {"MisTerm1", "missing terminating single quote"},
-  {"MisTerm2", "missing terminating double quote"},
-}
-
-
-
-local errmsgs = {}
-local labels = {}
-
-for i, err in ipairs(errinfo) do
-  errmsgs[i] = err[2]
-  labels[err[1]] = i
-end
-
--- end
-
-
 function foldtable(action,t)
 	local re
 	local first = true
@@ -98,70 +35,70 @@ end
 
 local gram = [=[
 
-pattern         <- exp !.
-exp             <- S (grammar / alternative)
+	pattern         <- exp !.
+	exp             <- S (grammar / alternative)
 
-labels			<- {| '{' {: label :} (',' {: label :})* '}' |}
-
-
-alternative		<- ( {:''->'or':} {| {: seq :} ('/' ('/' {| {: labels :} S {: seq :} |} / S {: seq :} ) )* |} ) -> foldtable
+	labels			<- {| '{' {: label :} (',' {: label :})* '}' |}
 
 
-seq		        <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
+	alternative		<- ( {:''->'or':} {| {: seq :} ('/' ('/' {| {: labels :} S {: seq :} |} / S {: seq :} ) )* |} ) -> foldtable
 
 
-prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
-				/ {| {:action: '!' :} S {:op1: prefix :} |}
-				/ suffix
-
-suffix			<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
+	seq		        <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
 
 
-suffixaction	<- 	((		{[+*?]}
-				/ {'^'} {[+-]? num}
-				/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / name)
-				/ {'=>'} S name) S )
+	prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
+					/ {| {:action: '!' :} S {:op1: prefix :} |}
+					/ suffix
+
+	suffix			<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
+
+
+	suffixaction	<- 	((		{[+*?]}
+					/ {'^'} {[+-]? num}
+					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / name)
+					/ {'=>'} S name) S )
 
 
 
 
-primary         <- '(' exp ')' / string / class / defined
-				/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
-				/ {| '{:' {:action:''->'gcap':} ({:op2: name:} ':')? {:op1:exp:} ':}' |}
-				/ {| '=' {:action:''->'bref':} {:op1: name:} |}
-				/ {| '{}' {:action:''->'poscap':} |}
-				/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
-				/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
-				/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
-				/ {| '.' {:action:''->'anychar':} |}
-				/ name S !arrow
-				/ '<' name '>'          -- old-style non terminals
+	primary         <- '(' exp ')' / string / class / defined
+					/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
+					/ {| '{:' {:action:''->'gcap':} ({:op2: name:} ':')? {:op1:exp:} ':}' |}
+					/ {| '=' {:action:''->'bref':} {:op1: name:} |}
+					/ {| '{}' {:action:''->'poscap':} |}
+					/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
+					/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
+					/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
+					/ {| '.' {:action:''->'anychar':} |}
+					/ name S !arrow
+					/ '<' name '>'          -- old-style non terminals
 
-grammar         <- {| definition+ |}
-definition      <- {| (token  S arrow {:rule: exp :}) 
-				/ (nontoken  S arrow {:rule: exp :}) |}
+	grammar         <- {| definition+ |}
+	definition      <- {| (token  S arrow {:rule: exp :}) 
+					/ (nontoken  S arrow {:rule: exp :}) |}
 
-label			<- num / errorname -> tlabels
+	label			<- num / errorname -> tlabels
 
-token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
-nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
+	token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
+	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
-class           <- {| {:r: '[' '^'? item (!']' item)* ']':} |}
-item            <- defined / range / .
-range           <- . '-' [^]]
+	class           <- {| {:r: '[' '^'? item (!']' item)* ']':} |}
+	item            <- defined / range / .
+	range           <- . '-' [^]]
 
-S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
-name            <- {| {:nt: [A-Z]+:} {:token:''->'1':} / {:nt: [A-Za-z][A-Za-z0-9_]* :} |}
-errorname		<- [A-Za-z][A-Za-z0-9_]*
+	S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
+	name            <- {| {:nt: [A-Z]+:} {:token:''->'1':} / {:nt: [A-Za-z][A-Za-z0-9_]* :} |}
+	errorname		<- [A-Za-z][A-Za-z0-9_]*
 
-namenocap		<- [A-Za-z][A-Za-z0-9_]*
-arrow           <- '<-'
-num             <- [0-9]+
-string          <- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
-defined         <- {| {:action: '%':} {:op1: name :} |}
+	namenocap		<- [A-Za-z][A-Za-z0-9_]*
+	arrow           <- '<-'
+	num             <- [0-9]+
+	string          <- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
+	defined         <- {| {:action: '%':} {:op1: name :} |}
 
 ]=]
-
+peg.gram = gram
 
 local labels = {err=3, ok=2}
 function tlabels(name)
