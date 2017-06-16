@@ -67,22 +67,28 @@ end
 -- end
 
 
-local sb = nil
-function init (capture)
-	sb = capture
-	return capture
-end
-function fold (captures,secondary) 
-	temp = sb
-	if captures == "->" or captures == "->" or captures == "^" then
-		sb = {action=captures, op1=temp, op2=secondary}
-	else
-		sb = {action=captures, op1=temp}
+function foldtable(action,t)
+	local re
+	local first = true
+	for key,value in pairs(t) do
+		if first then
+			re = value
+			first = false
+		else
+			local temp = re
+			if action == "suf" then -- suffix actions
+				local act = value[1]
+				if act == "*" or act == "?" or act == "+" then
+					re = {action=act, op1=temp}
+				else
+					re = {action=act, op1=temp, op2=value[2]}
+				end
+			else
+				re = {action=action, op1=temp, op2=value}
+			end
+		end
 	end
-	return true
-end
-function returnsb(captures)
-	return sb
+	return re
 end
 
 
@@ -91,17 +97,16 @@ local gram = [=[
 pattern         <- exp !.
 exp             <- S (grammar / alternative)
 
-alternative     <- {| {:action: ''->'or':} {:op1: seq :} '/' S {:op2: alternative:} |}
-					/ seq
-seq             <- {| {:action: ''->'and':} {:op1: prefix :} {:op2: seq:} |}
-					/ prefix
+alternative     <- ( {:''->'or':} {| {: seq :} ('/' S {: seq :})* |} ) -> foldtable
+
+seq             <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
+
+
 prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
 					/ {| {:action: '!' :} S {:op1: prefix :} |}
 					/ suffix
-					
-					
-suffix			<- ((primary -> init) S (suffixaction -> fold)+ ) -> returnsb
-					/ primary S
+
+suffix			<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
 					
 
 suffixaction	<- 	((		{[+*?]}
@@ -146,7 +151,7 @@ defined         <- {| {:action: '%':} {:op1: name :} |}
 
 
 
-local p = re.compile ( gram, {fold = fold, returnsb = returnsb, init = init})
+local p = re.compile ( gram, {foldtable=foldtable})
 --[[
 
 a+ -> hello
@@ -202,12 +207,9 @@ anychar
 
 ]]--
 function peg.pegToAST(input)
-	-- check syntax of input
-	result = re.compile(input) -- should throw a runtime error for a bad input
 	return p:match(input)
 end
---[[
-local testgram = 
+local testgram = [[
 	program <- stmtsequence
 	stmtsequence <- statement (';' statement)*
 	statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
@@ -226,12 +228,11 @@ local testgram =
 
 	NUMBER <- '-'? [0-9]+
 	IDENTIFIER <- [a-zA-Z]+
-
-
-]]--
-
+	
+]]
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
 	lpeg.print_r(peg.pegToAST(arg[1]))
 end
+
 return peg
