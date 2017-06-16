@@ -56,15 +56,15 @@ local gram = [=[
 
 	suffixaction	<- 	((		{[+*?]}
 					/ {'^'} {[+-]? num}
-					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / name)
-					/ {'=>'} S name) S )
+					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {num})
+					/ {'=>'} S funcname) S )
 
 
 
 
 	primary         <- '(' exp ')' / string / class / defined
 					/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
-					/ {| '{:' {:action:''->'gcap':} ({:op2: name:} ':')? {:op1:exp:} ':}' |}
+					/ {| ('{:' {:action:''->'gcap':} {:op2: name:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
 					/ {| '=' {:action:''->'bref':} {:op1: name:} |}
 					/ {| '{}' {:action:''->'poscap':} |}
 					/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
@@ -90,6 +90,7 @@ local gram = [=[
 	S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
 	name            <- {| {:nt: [A-Z]+:} {:token:''->'1':} / {:nt: [A-Za-z][A-Za-z0-9_]* :} |}
 	errorname		<- [A-Za-z][A-Za-z0-9_]*
+	funcname		<- {| {:func: [A-Za-z][A-Za-z0-9_]* :} |}
 
 	namenocap		<- [A-Za-z][A-Za-z0-9_]*
 	arrow           <- '<-'
