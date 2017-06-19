@@ -2,7 +2,9 @@ local re = require "relabel"
 
 local peg = {}
 
-
+function concat(a,b)
+	return a..b
+end
 function foldtable(action,t)
 	local re
 	local first = true
@@ -11,6 +13,7 @@ function foldtable(action,t)
 			re = value
 			first = false
 		else
+
 			local temp = re
 			if action == "suf" then -- suffix actions
 				local act = value[1]
@@ -61,10 +64,10 @@ local gram = [=[
 
 
 
-	primary         <- '(' exp ')' / string / class / defined
+	primary         <- '(' exp ')' / term / class / defined
 					/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
-					/ {| ('{:' {:action:''->'gcap':} {:op2: name:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
-					/ {| '=' {:action:''->'bref':} {:op1: name:} |}
+					/ {| ('{:' {:action:''->'gcap':} {:op2: defname:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
+					/ {| '=' {:action:''->'bref':} {:op1: defname:} |}
 					/ {| '{}' {:action:''->'poscap':} |}
 					/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
 					/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
@@ -82,32 +85,39 @@ local gram = [=[
 	token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
-	class           <- {| {:action:''->'range' '[' '^'? item (!']' item)* ']':} |}
-	item            <- defined / range / .
-	range           <- . '-' [^]]
+	class           <- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
+	classset		<- ( {:''->'or':} {| {: item :} (!']' {: item :})* |} ) -> foldtable
+	item            <- defined / range / {| {:t: . :} |}
+	range           <- {| {:action:''->'range':} {:op1: {| {:s: ({: . :} ('-') {: [^]] :} ) -> concat :} |} :} |}
 
 	S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
-	name            <- {| {:nt: [A-Z]+:} {:token:''->'1':} / {:nt: [A-Za-z][A-Za-z0-9_]* :} |}
-	errorname		<- [A-Za-z][A-Za-z0-9_]*
-	funcname		<- {| {:func: [A-Za-z][A-Za-z0-9_]* :} |}
+	name            <- {| {:nt: tokenname :} {:token:''->'1':} / {:nt: namestring :} |}
+	errorname		<- namestring
+	funcname		<- {| {:func: namestring :} |}
 
-	namenocap		<- [A-Za-z][A-Za-z0-9_]*
+	namestring		<- [A-Za-z][A-Za-z0-9_]*
+	tokenname		<- [A-Z]+
+	defname			<- {| {:s: namestring :} |}
 	arrow           <- '<-'
 	num             <- [0-9]+
-	string          <- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
-	defined         <- {| {:action: '%':} {:op1: name :} |}
+	term          	<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
+	string			<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
+	defined         <- {| {:action: '%':} {:op1: defname :} |}
+	
 
 ]=]
-peg.gram = gram
 
 local labels = {err=3, ok=2}
-function tlabels(name)
-	if not labels[name] then
+local function tlabels(name)
+	if not labels[name] then 
 		error("Error name '"..name.."' undefined!")
 	end
 	return tostring(labels[name])
 end
-local p = re.compile ( gram, {foldtable=foldtable, tlabels=tlabels})
+local defs = {foldtable=foldtable, tlabels=tlabels, concat=concat}
+peg.gram = gram
+peg.defs = defs
+local p = re.compile ( gram, defs)
 
 
 
@@ -155,13 +165,14 @@ scap
 anychar
 label
 %
-range
+classpos
+classneg
 
 Terminal actions:
 t
 nt
 func
-
+s
 
 ]]--
 function peg.pegToAST(input, defs)
@@ -193,10 +204,6 @@ function peg.print_r ( t )  -- for debugging
         end
     end
     sub_print_r(t,"")
-end
-if arg[1] then	
-	-- argument must be in quotes if it contains spaces
-	peg.print_r(peg.pegToAST(gram))
 end
 
 return peg

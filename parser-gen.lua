@@ -1,23 +1,41 @@
-local lpeg = require "lpeglabel"
+local m = require "lpeglabel"
 local peg = require "peg-parser"
+local re = require "relabel"
 
-lpeg.locale(lpeg)
-
-local P, V, C, Ct, R, S, B, Cmt = lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.R, lpeg.S, lpeg.B, lpeg.Cmt -- for lpeg
-local T = lpeg.T -- lpeglabel
-local space = lpeg.space
-local alpha = lpeg.alpha
-
+local Predef = { nl = m.P"\n" }
+m.locale(Predef)
+local any = m.P(1)
+Predef.a = Predef.alpha
+Predef.c = Predef.cntrl
+Predef.d = Predef.digit
+Predef.g = Predef.graph
+Predef.l = Predef.lower
+Predef.p = Predef.punct
+Predef.s = Predef.space
+Predef.u = Predef.upper
+Predef.w = Predef.alnum
+Predef.x = Predef.xdigit
+Predef.A = any - Predef.a
+Predef.C = any - Predef.c
+Predef.D = any - Predef.d
+Predef.G = any - Predef.g
+Predef.L = any - Predef.l
+Predef.P = any - Predef.p
+Predef.S = any - Predef.s
+Predef.U = any - Predef.u
+Predef.W = any - Predef.w
+Predef.X = any - Predef.x
 
 local mem = {} -- for compiled grammars
-
+local definitions = {}
+local tlabels = {}
 
 -- lpeglabel related functions:
 local function sync (patt)
-	return (-patt * P(1))^0 -- skip until we find pattern
+	return (-patt * l.P(1))^0 -- skip until we find pattern
 end
 
-local Skip = (space)^0
+local Skip = (Predef.space)^0
 
 local function setSpace(patt)
 	Skip = patt^0
@@ -29,11 +47,11 @@ end
 
 
 local function sym (str)
-	return token(P(str))
+	return token(m.P(str))
 end
 
 local function kw (str)
-	return lpeg.token(P(str))
+	return token(m.P(str))
 end
 
 
@@ -50,7 +68,7 @@ end
 -- functions used by the tool
 
 local function iscompiled (gr)
-	return lpeg.type(gr) == "pattern"
+	return m.type(gr) == "pattern"
 end
 
 local function istoken (t)
@@ -58,7 +76,7 @@ local function istoken (t)
 end
 
 local function isfinal(t)
-	if t["t"] or t["nt"] or t["func"] then
+	if t["t"] or t["nt"] or t["func"] or t["s"] then
 		return true
 	else
 		return false
@@ -96,6 +114,8 @@ local function finalNode (t)
 		return "nt", t["nt"], istoken(t) -- nonterminal
 	elseif t["func"] then
 		return "func", t["func"] -- function
+	elseif t["s"] then
+		return "s", t["s"]
 	else
 		return nil
 	end
@@ -109,38 +129,104 @@ local function buildgrammar (ast)
 			initial = v["rulename"]
 			table.insert(builder, initial)
 		end
-		builder[v["rulename"]] = traverse(v["rule"])
+		local istokenrule = v["token"] == "1"
+		--peg.print_r(v["rule"])
+		builder[v["rulename"]] = traverse(v["rule"], istokenrule)
 	end
 	return builder
 end
+local function equalcap (s, i, c)
+  if type(c) ~= "string" then return nil end
+  local e = #c + i
+  if s:sub(i, e - 1) == c then return e else return nil end
+end
 
--- lpeg functions
 
 local function applyaction(action, op1, op2, labels)
-	if op2 then
-		return action.."("..op1..","..op2..")"
-	elseif op1 then
-		return action.."("..op1..")"
+	if action == "or" then
+		if labels then
+			return m.Rec(op1,op2,labels)
+		else
+			return op1 + op2
+		end
+	elseif action == "and" then
+		return op1 * op2
+	elseif action == "&" then
+		return #op1
+	elseif action == "!" then
+		return -op1
+	elseif action == "+" then
+		return op1^1
+	elseif action == "*" then
+		return op1^0
+	elseif action == "?" then
+		return op1^-1
+	elseif action == "^" then
+		return op1^op2
+	elseif action == "->" then
+		return op1 / op2
+	elseif action == "=>" then
+		return m.Cmt(op1, op2)
+	elseif action == "tcap" then
+		return m.Ct(op1)
+	elseif action == "gcap" then
+		return m.Cg(op1, op2)
+	elseif action == "bref" then
+		return m.Cmt(m.Cb(op1), equalcap)
+	elseif action == "poscap" then
+		return m.Cp()
+	elseif action == "subcap" then
+		return m.Cs(op1)
+	elseif action == "scap" then
+		return m.C(op1)
+	elseif action == "anychar" then
+		return m.P(1)
+	elseif action == "label" then
+		return m.T(op1) -- lpeglabel
+	elseif action == "%" then
+		if Predef[op1] then
+			return Predef[op1]
+		end
+		return definitions[op1]
+	elseif action == "invert" then
+		return m.P(1) - op1
+	elseif action == "range" then
+		return m.R(op1)
 	else
-		return action.."()"
+		error("Unsupported action '"..action.."'")
 	end
 end
-local function applyfinal(action, term, token)
-	if token then
-		return action.."("..term.." `token`)"
-	else
-	return action.."("..term..")"
+local function applyclass(t)
+	return ''
+end
+local function applyfinal(action, term, token, tokenrule)
+	if action == "t" then
+		return m.P(term)
+	elseif action == "nt" then
+		return m.V(term)
+	elseif action == "func" then
+		return definitions[term]
+	elseif action == "s" then
+		return term
 	end
 end
+
+
 local function applygrammar(gram)
-	peg.print_r(gram)
+	return m.P(gram)
 end
+
+
 local function build(ast, defs)
-	
+	if defs then
+		definitions = defs
+	end
+	return traverse(ast)
 end
 
 
-function traverse(ast)
+
+function traverse(ast, tokenrule)
 	if not ast then
 		return nil 
 	end
@@ -148,7 +234,7 @@ function traverse(ast)
 	if isfinal(ast) then
 	
 		local typefn, fn, tok = finalNode(ast)
-		return applyfinal(typefn, fn, tok)
+		return applyfinal(typefn, fn, tok, tokenrule)
 		
 	elseif isaction(ast) then
 	
@@ -158,27 +244,27 @@ function traverse(ast)
 		op2 = ast["op2"]
 		labs = ast["condition"] -- recovery operations
 		
-		-- post-order traversal
-		ret1 = traverse(op1)
-		ret2 = traverse(op2)
-		
-		return applyaction(act, ret1, ret2, labs)
+		if act == "class" then
+			return applyclass(op1)
+		else
+			-- post-order traversal
+			ret1 = traverse(op1, tokenrule)
+			ret2 = traverse(op2, tokenrule)
+			
+			return applyaction(act, ret1, ret2, labs)
+		end
 		
 	elseif isgrammar(ast) then
-		
+		--
 		local g = buildgrammar (ast)
 		return applygrammar (g)
 		
 	else
+		peg.print_r(ast)
 		error("Unsupported AST")	
 	end
 
 end
-
-local testgram = peg.pegToAST(peg.gram)
-
-print(traverse(testgram))
-
 
 local function compile (input, defs)
 	if iscompiled(input) then return input end
@@ -194,8 +280,6 @@ local function compile (input, defs)
 	return mem[input]
 end
 
-local tlabels = {}
-
 local function setlabels (t)
 	for key,value in pairs(t) do
 		if (not type(key) == "number") or key < 1 or key > 255 then
@@ -210,15 +294,14 @@ end
 
 
 
-local function parse (input, grammar, errorfunction)
+local function parse (input, grammar, defs, errorfunction)
 	if not iscompiled(grammar) then
-		cp = compile(grammar) -- cannot use definitions here
+		cp = compile(grammar,defs)
 		grammar = cp
 	end
-	
-	return input
+	return m.match(grammar,input)
 end
 
-local pg = {}
+local pg = {compile=compile, setlabels=setlabels, parse=parse}
 
 return pg

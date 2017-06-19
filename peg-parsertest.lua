@@ -1,8 +1,5 @@
 local peg = require "peg-parser"
-local lpeg = require "lpeg-funcs"
 local f = peg.pegToAST
-local pr = lpeg.print_r
-
 
 function equals(o1, o2, ignore_mt)
     if o1 == o2 then return true end
@@ -38,7 +35,7 @@ end
 
 -- self-description of peg-parser:
 
-assert(f(peg.gram))
+--assert(f(peg.gram))
 
 -- ( p )	grouping
 e = f("('a')")
@@ -59,6 +56,7 @@ res = {t="string"}
 assert(equals(e,res))
 --[class]	character class
 e = f("[^a-zA-Z]")
+peg.print_r(e)
 res = {r="[^a-zA-Z]"}
 
 assert(equals(e,res))
