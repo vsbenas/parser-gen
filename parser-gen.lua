@@ -58,7 +58,7 @@ local function istoken (t)
 end
 
 local function isfinal(t)
-	if t["t"] or t["nt"] or t["r"] or t["func"] then
+	if t["t"] or t["nt"] or t["func"] then
 		return true
 	else
 		return false
@@ -94,8 +94,6 @@ local function finalNode (t)
 		return "t", t["t"] -- terminal
 	elseif t["nt"] then
 		return "nt", t["nt"], istoken(t) -- nonterminal
-	elseif t["r"] then
-		return "r", t["r"] -- range
 	elseif t["func"] then
 		return "func", t["func"] -- function
 	else
@@ -121,8 +119,10 @@ end
 local function applyaction(action, op1, op2, labels)
 	if op2 then
 		return action.."("..op1..","..op2..")"
-	else
+	elseif op1 then
 		return action.."("..op1..")"
+	else
+		return action.."()"
 	end
 end
 local function applyfinal(action, term, token)
@@ -172,13 +172,12 @@ function traverse(ast)
 	else
 		error("Unsupported AST")	
 	end
+
 end
 
-print(traverse({
-	{rulename = "Program",	rule = {action = "or", op1 = {action = "*", op1 = {nt = "stmt"}}, op2 = {nt = "SPACE", token="1"}}},
-	{rulename = "stmt", 	rule = {action = "+", op1 = {action="or", op1 = {t = "a"}, op2 = {t = "b"}}}},
-	{rulename = "SPACE",	rule = {t=""}, token=1},
-}))
+local testgram = peg.pegToAST(peg.gram)
+
+print(traverse(testgram))
 
 
 local function compile (input, defs)

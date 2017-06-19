@@ -82,7 +82,7 @@ local gram = [=[
 	token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
-	class           <- {| {:r: '[' '^'? item (!']' item)* ']':} |}
+	class           <- {| {:action:''->'range' '[' '^'? item (!']' item)* ']':} |}
 	item            <- defined / range / .
 	range           <- . '-' [^]]
 
@@ -155,11 +155,11 @@ scap
 anychar
 label
 %
+range
 
 Terminal actions:
 t
 nt
-r
 func
 
 
@@ -196,7 +196,7 @@ function peg.print_r ( t )  -- for debugging
 end
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	peg.print_r(peg.pegToAST(arg[1]))
+	peg.print_r(peg.pegToAST(gram))
 end
 
 return peg
