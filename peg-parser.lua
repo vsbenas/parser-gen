@@ -157,12 +157,43 @@ anychar
 label
 %
 
+Terminal actions:
+t
+nt
+r
+func
+
+
 ]]--
-function peg.pegToAST(input)
-	return p:match(input)
+function peg.pegToAST(input, defs)
+	return p:match(input, defs)
 end
 function peg.setLabels(input)
 	labels=input
+end
+function lpeg.print_r ( t )  -- for debugging
+    local print_r_cache={}
+    local function sub_print_r(t,indent)
+        if (print_r_cache[tostring(t)]) then
+            print(indent.."*"..tostring(t))
+        else
+            print_r_cache[tostring(t)]=true
+            if (type(t)=="table") then
+                for pos,val in pairs(t) do
+                    if (type(val)=="table") then
+                        print(indent.."["..pos.."] => {")
+                        sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
+                        print(indent..string.rep(" ",string.len(pos)+6).."}")
+                    else
+                        print(indent.."["..pos.."] => '"..tostring(val).."'")
+                    end
+                end
+            else
+                print(indent..tostring(t))
+            end
+        end
+    end
+    sub_print_r(t,"")
 end
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
