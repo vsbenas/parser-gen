@@ -57,47 +57,128 @@ local function istoken (t)
 	return t["token"] == "1"
 end
 
-local function finalNode (t)
-	if t["t"] then
-		return "t" -- terminal
-	elseif t["nt"]
-		return "nt" -- nonterminal
-	elseif t["r"]
-		return "r" -- range
-	elseif t["func"]
-		return "func" -- function
+local function isfinal(t)
+	if t["t"] or t["nt"] or t["r"] or t["func"] then
+		return true
+	else
+		return false
+	end
+end
+
+local function isaction(t)
+	if t["action"] then
+		return true
+	else
+		return false
+	end
 end
 
 
-
-local function traverse(ast)
-	if not ast then return nil
-	fn = finalNode(ast)
-	if(
+local function isrule(t)
+	if t["rulename"] then
+		return true
 	else
-		act = ast["action"]
-		op1 = ast["op1"]
-		op2 = ast["op2"]
-		labs = ast["condition"] -- recovery operations
-		ret1 = traverse(op1)
-		ret2 = traverse(op2)
-		apply(act, op1, op2, labs)
+		return false
 	end
+end
+local function isgrammar(t)
+	if type(t) == "table" then
+		return isrule(t[1])
+	else
+		return false
+	end
+end
+
+local function finalNode (t)
+	if t["t"] then
+		return "t", t["t"] -- terminal
+	elseif t["nt"] then
+		return "nt", t["nt"], istoken(t) -- nonterminal
+	elseif t["r"] then
+		return "r", t["r"] -- range
+	elseif t["func"] then
+		return "func", t["func"] -- function
+	else
+		return nil
+	end
+end
+
+local function buildgrammar (ast)
+	local builder = {}
+	local initial
+	for i, v in ipairs(ast) do
+		if i == 1 then
+			initial = v["rulename"]
+			table.insert(builder, initial)
+		end
+		builder[v["rulename"]] = traverse(v["rule"])
+	end
+	return builder
 end
 
 -- lpeg functions
 
-local function apply(action, op1, op2, labels)
+local function applyaction(action, op1, op2, labels)
+	if op2 then
+		return action.."("..op1..","..op2..")"
+	else
+		return action.."("..op1..")"
+	end
+end
+local function applyfinal(action, term, token)
+	if token then
+		return action.."("..term.." `token`)"
+	else
+	return action.."("..term..")"
+	end
+end
+local function applygrammar(gram)
+	peg.print_r(gram)
+end
+local function build(ast, defs)
 	
-
 end
 
 
-local function buildgrammar(ast, defs)
+function traverse(ast)
+	if not ast then
+		return nil 
+	end
 	
+	if isfinal(ast) then
+	
+		local typefn, fn, tok = finalNode(ast)
+		return applyfinal(typefn, fn, tok)
+		
+	elseif isaction(ast) then
+	
+		local act, op1, op2, labs, ret1, ret2
+		act = ast["action"]
+		op1 = ast["op1"]
+		op2 = ast["op2"]
+		labs = ast["condition"] -- recovery operations
+		
+		-- post-order traversal
+		ret1 = traverse(op1)
+		ret2 = traverse(op2)
+		
+		return applyaction(act, ret1, ret2, labs)
+		
+	elseif isgrammar(ast) then
+		
+		local g = buildgrammar (ast)
+		return applygrammar (g)
+		
+	else
+		error("Unsupported AST")	
+	end
 end
 
-
+print(traverse({
+	{rulename = "Program",	rule = {action = "or", op1 = {action = "*", op1 = {nt = "stmt"}}, op2 = {nt = "SPACE", token="1"}}},
+	{rulename = "stmt", 	rule = {action = "+", op1 = {action="or", op1 = {t = "a"}, op2 = {t = "b"}}}},
+	{rulename = "SPACE",	rule = {t=""}, token=1},
+}))
 
 
 local function compile (input, defs)
@@ -108,7 +189,7 @@ local function compile (input, defs)
 		-- build ast
 		ast = peg.pegToAST(input)
 		-- rebuild lpeg grammar
-		ret = buildgrammar(ast,defs)
+		ret = build(ast,defs)
 		mem[input] = ret -- store if the user forgets to compile it
 	end
 	return mem[input]

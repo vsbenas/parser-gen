@@ -1,4 +1,3 @@
-local lpeg = require "lpeg-funcs"
 local re = require "relabel"
 
 local peg = {}
@@ -171,7 +170,7 @@ end
 function peg.setLabels(input)
 	labels=input
 end
-function lpeg.print_r ( t )  -- for debugging
+function peg.print_r ( t )  -- for debugging
     local print_r_cache={}
     local function sub_print_r(t,indent)
         if (print_r_cache[tostring(t)]) then
@@ -197,7 +196,7 @@ function lpeg.print_r ( t )  -- for debugging
 end
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	lpeg.print_r(peg.pegToAST(arg[1]))
+	peg.print_r(peg.pegToAST(arg[1]))
 end
 
 return peg
