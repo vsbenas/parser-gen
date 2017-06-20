@@ -80,7 +80,7 @@ local gram = [=[
 	definition      <- {| (token  S arrow {:rule: exp :}) 
 					/ (nontoken  S arrow {:rule: exp :}) |}
 
-	label			<- num / errorname -> tlabels
+	label			<- {| {:s: num / errorname -> tlabels :} |}
 
 	token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
@@ -107,7 +107,9 @@ local gram = [=[
 
 ]=]
 
-local labels = {err=3, ok=2}
+local labels = {}
+
+
 local function tlabels(name)
 	if not labels[name] then 
 		error("Error name '"..name.."' undefined!")
@@ -178,8 +180,18 @@ s
 function peg.pegToAST(input, defs)
 	return p:match(input, defs)
 end
-function peg.setLabels(input)
-	labels=input
+
+
+function peg.setlabels(t)
+	for key,value in pairs(t) do
+		if (type(key) ~= "string") then
+			error("Invalid error label key '"..value.."'. Keys must be strings.")
+		end
+		if (type(value) ~= "number") or value < 1 or value > 255 then
+			error("Invalid error label value '"..value.."'. Error label keys must be integers from 1 to 255")
+		end
+	end
+	labels = t
 end
 function peg.print_r ( t )  -- for debugging
     local print_r_cache={}

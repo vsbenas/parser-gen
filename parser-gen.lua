@@ -68,6 +68,7 @@ end
 -- functions used by the tool
 
 local function iscompiled (gr)
+
 	return m.type(gr) == "pattern"
 end
 
@@ -270,6 +271,7 @@ local function compile (input, defs)
 	if iscompiled(input) then return input end
 	if not mem[input] then
 		-- test for errors
+		re.setlabels(labels)
 		re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
@@ -281,22 +283,28 @@ local function compile (input, defs)
 end
 
 local function setlabels (t)
-	for key,value in pairs(t) do
-		if (not type(key) == "number") or key < 1 or key > 255 then
-			error("Invalid error label key '"..key.."'. Error label keys must be integers from 1 to 255")
-		end
-		if not type(value) == "string" then
-			error("Invalid error label value. Error label values must be strings.")
-		end
-	end
-	tlabels = t
+	return peg.setlabels(t)
 end
+
+
 local function parse (input, grammar, defs, errorfunction)
 	if not iscompiled(grammar) then
 		cp = compile(grammar,defs)
 		grammar = cp
 	end
-	return m.match(grammar,input)
+	local r, e, sfail = m.match(grammar,input)
+	if not r then
+		local line, col = re.calcline(input, #input - #sfail)
+		local msg = "Error at line " .. line .. " (col " .. col .. "): "
+		local err
+		if e == 0 then 
+			err = "Syntax error"
+		else 
+			err = errmsgs[e]
+		end
+		return r, msg ..  err .. " before '" .. sfail .. "'"
+	end
+	return r
 end
 
 local pg = {compile=compile, setlabels=setlabels, parse=parse}
