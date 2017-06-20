@@ -291,9 +291,6 @@ local function setlabels (t)
 	end
 	tlabels = t
 end
-
-
-
 local function parse (input, grammar, defs, errorfunction)
 	if not iscompiled(grammar) then
 		cp = compile(grammar,defs)
