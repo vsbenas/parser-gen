@@ -141,7 +141,7 @@ local function specialrules(t, builder)
 				skipspaces = false
 			else
 				skipspaces = true
-				SPACES = m.V(name)
+				SPACES = (m.V(name))^0
 			end
 			builder[name] = rule
 		elseif name == "SYNC" then
