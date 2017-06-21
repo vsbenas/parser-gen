@@ -33,6 +33,11 @@ function equals(o1, o2, ignore_mt)
     return true
 end
 
+-- SELF-DESCRIPTION
+gram = pg.compile(peg.gram, peg.defs)
+res = pg.parse(peg.gram,gram)
+assert(res)
+
 -- TESTING SPACES 
 
 -- terminals
