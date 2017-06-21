@@ -64,7 +64,8 @@ assert(not res)
 -- custom space
 rule = pg.compile [[
 rule <- 'a' 'b'
-SPACES <- '.'
+SPACES <- DOT
+DOT <- '.'
 ]]
 str = "a...b"
 res = pg.parse(str,rule)
