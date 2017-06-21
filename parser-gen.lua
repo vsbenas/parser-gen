@@ -3,30 +3,37 @@ local peg = require "peg-parser"
 local re = require "relabel"
 
 local Predef = { nl = m.P"\n" }
-m.locale(Predef)
-local any = m.P(1)
-Predef.a = Predef.alpha
-Predef.c = Predef.cntrl
-Predef.d = Predef.digit
-Predef.g = Predef.graph
-Predef.l = Predef.lower
-Predef.p = Predef.punct
-Predef.s = Predef.space
-Predef.u = Predef.upper
-Predef.w = Predef.alnum
-Predef.x = Predef.xdigit
-Predef.A = any - Predef.a
-Predef.C = any - Predef.c
-Predef.D = any - Predef.d
-Predef.G = any - Predef.g
-Predef.L = any - Predef.l
-Predef.P = any - Predef.p
-Predef.S = any - Predef.s
-Predef.U = any - Predef.u
-Predef.W = any - Predef.w
-Predef.X = any - Predef.x
-
 local mem = {} -- for compiled grammars
+
+
+local function updatelocale()
+	m.locale(Predef)
+	local any = m.P(1)
+	Predef.a = Predef.alpha
+	Predef.c = Predef.cntrl
+	Predef.d = Predef.digit
+	Predef.g = Predef.graph
+	Predef.l = Predef.lower
+	Predef.p = Predef.punct
+	Predef.s = Predef.space
+	Predef.u = Predef.upper
+	Predef.w = Predef.alnum
+	Predef.x = Predef.xdigit
+	Predef.A = any - Predef.a
+	Predef.C = any - Predef.c
+	Predef.D = any - Predef.d
+	Predef.G = any - Predef.g
+	Predef.L = any - Predef.l
+	Predef.P = any - Predef.p
+	Predef.S = any - Predef.s
+	Predef.U = any - Predef.u
+	Predef.W = any - Predef.w
+	Predef.X = any - Predef.x
+	mem = {}
+end
+
+updatelocale()
+
 local definitions = {}
 local tlabels = {}
 
@@ -35,23 +42,21 @@ local function sync (patt)
 	return (-patt * l.P(1))^0 -- skip until we find pattern
 end
 
-local Skip = (Predef.space)^0
+local SPACES = (Predef.space + Predef.nl)^0
 
-local function setSpace(patt)
-	Skip = patt^0
+local SYNCS = (Predef.nl)^0
+
+local recovery = true
+local skipspaces = true
+
+
+
+local function setSync(patt)
+	SYNCS = patt^0
 end
 
 local function token (patt)
-	return patt * Skip
-end
-
-
-local function sym (str)
-	return token(m.P(str))
-end
-
-local function kw (str)
-	return token(m.P(str))
+	return patt * SPACES
 end
 
 
@@ -68,7 +73,6 @@ end
 -- functions used by the tool
 
 local function iscompiled (gr)
-
 	return m.type(gr) == "pattern"
 end
 
@@ -121,18 +125,60 @@ local function finalNode (t)
 		return nil
 	end
 end
+local function specialrules(t, builder)
+	-- initialize values
+	SPACES = (Predef.space + Predef.nl)^0
+	skipspaces = true
+	SYNCS = (Predef.nl)^0
+	recovery = true
+	-- find SPACE and SYNC rules
+	for i, v in ipairs(ast) do
+		local name = v["rulename"]
+		local rule
+		if name == "SPACES" then
+			rule = traverse(v["rule"], true)
+			if v["rule"]["t"] == '' then
+				skipspaces = false
+			else
+				skipspaces = true
+				SPACES = m.V(name)
+			end
+			builder[name] = rule
+		elseif name == "SYNC" then
+			rule = traverse(v["rule"], true)
+			if m.match(rule, '') then -- SYNC <- ''
+				recovery=false
+			else
+				recovery= true
+				setSync(rule)
+			end
+			builder[name] = rule
+		end
+	end
+end
 
 local function buildgrammar (ast)
 	local builder = {}
-	local initial
+	specialrules(ast, builder)
 	for i, v in ipairs(ast) do
-		if i == 1 then
-			initial = v["rulename"]
-			table.insert(builder, initial)
-		end
 		local istokenrule = v["token"] == "1"
-		--peg.print_r(v["rule"])
-		builder[v["rulename"]] = traverse(v["rule"], istokenrule)
+		local name = v["rulename"]
+		local rule = v["rule"]
+		if i == 1 then
+			table.insert(builder, name) -- lpeg syntax
+			if not builder[name] then
+				if skipspaces then
+					builder[name] = SPACES * traverse(rule, istokenrule) -- skip spaces at the beginning of the input
+				else
+					builder[name] = traverse(rule, istokenrule)
+				end
+			end
+		else
+			if not builder[name] then -- dont traverse rules for SKIP and SPACES twice
+				builder[name] = traverse(rule, istokenrule)
+			end
+		end
+		
 	end
 	return builder
 end
@@ -197,17 +243,23 @@ local function applyaction(action, op1, op2, labels)
 		error("Unsupported action '"..action.."'")
 	end
 end
-local function applyclass(t)
-	return ''
-end
-local function applyfinal(action, term, token, tokenrule)
+
+local function applyfinal(action, term, tokenterm, tokenrule)
 	if action == "t" then
-		return m.P(term)
+		if skipspaces and (not tokenrule) then
+			return token(m.P(term))
+		else
+			return m.P(term)
+		end
 	elseif action == "nt" then
-		return m.V(term)
+		if skipspaces and tokenterm and (not tokenrule) then
+			return token(m.V(term))
+		else
+			return m.V(term)
+		end
 	elseif action == "func" then
 		return definitions[term]
-	elseif action == "s" then
+	elseif action == "s" then -- simple string
 		return term
 	end
 end
@@ -245,15 +297,11 @@ function traverse(ast, tokenrule)
 		op2 = ast["op2"]
 		labs = ast["condition"] -- recovery operations
 		
-		if act == "class" then
-			return applyclass(op1)
-		else
-			-- post-order traversal
-			ret1 = traverse(op1, tokenrule)
-			ret2 = traverse(op2, tokenrule)
-			
-			return applyaction(act, ret1, ret2, labs)
-		end
+		-- post-order traversal
+		ret1 = traverse(op1, tokenrule)
+		ret2 = traverse(op2, tokenrule)
+		
+		return applyaction(act, ret1, ret2, labs)
 		
 	elseif isgrammar(ast) then
 		--
@@ -268,7 +316,9 @@ function traverse(ast, tokenrule)
 end
 
 local function compile (input, defs)
-	if iscompiled(input) then return input end
+	if iscompiled(input) then 
+		return input 
+	end
 	if not mem[input] then
 		-- test for errors
 		re.setlabels(labels)
@@ -277,6 +327,7 @@ local function compile (input, defs)
 		ast = peg.pegToAST(input)
 		-- rebuild lpeg grammar
 		ret = build(ast,defs)
+		
 		mem[input] = ret -- store if the user forgets to compile it
 	end
 	return mem[input]

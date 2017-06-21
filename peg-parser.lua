@@ -82,7 +82,7 @@ local gram = [=[
 
 	label			<- {| {:s: num / errorname -> tlabels :} |}
 
-	token 			<- {:rulename: [A-Z]+ :} {:token:''->'1':}
+	token 			<- {:rulename: [A-Z]+ ![0-9_] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
 	class           <- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
@@ -96,7 +96,7 @@ local gram = [=[
 	funcname		<- {| {:func: namestring :} |}
 
 	namestring		<- [A-Za-z][A-Za-z0-9_]*
-	tokenname		<- [A-Z]+
+	tokenname		<- [A-Z]+ ![0-9_]
 	defname			<- {| {:s: namestring :} |}
 	arrow           <- '<-'
 	num             <- [0-9]+
@@ -104,7 +104,6 @@ local gram = [=[
 	string			<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined         <- {| {:action: '%':} {:op1: defname :} |}
 	
-
 ]=]
 
 local labels = {}
@@ -167,8 +166,7 @@ scap
 anychar
 label
 %
-classpos
-classneg
+range
 
 Terminal actions:
 t
