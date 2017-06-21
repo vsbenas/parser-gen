@@ -108,6 +108,12 @@ assert(res)
 
 -- TESTING CAPTURES
 
+-- space in capture
+rule = pg.compile [[ rule <- {| {: 'a' :}* |} ]]
+str = " a a a "
+res = pg.parse(str,rule)
+peg.print_r(res)
+assert(equals(res,{"a","a","a"})) -- fails
 
 -- TESTING ERROR GENERATION
 
