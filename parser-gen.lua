@@ -43,6 +43,7 @@ local function sync (patt)
 end
 
 local SPACES = (Predef.space + Predef.nl)^0
+local SPACESex = (Predef.space + Predef.nl)^1 -- for removing in capture lists
 
 local SYNCS = (Predef.nl)^0
 
@@ -54,9 +55,11 @@ local skipspaces = true
 local function setSync(patt)
 	SYNCS = patt^0
 end
+local function removespaces(caps)
 
+end
 local function token (patt)
-	return patt * SPACES
+	return (patt * SPACES)
 end
 
 
@@ -128,6 +131,7 @@ end
 local function specialrules(t, builder)
 	-- initialize values
 	SPACES = (Predef.space + Predef.nl)^0
+	SPACESex = (Predef.space + Predef.nl)^1
 	skipspaces = true
 	SYNCS = (Predef.nl)^0
 	recovery = true
@@ -142,6 +146,7 @@ local function specialrules(t, builder)
 			else
 				skipspaces = true
 				SPACES = (m.V(name))^0
+				SPACESex = (m.V(name))^1
 			end
 			builder[name] = rule
 		elseif name == "SYNC" then
@@ -285,7 +290,6 @@ function traverse(ast, tokenrule)
 	end
 	
 	if isfinal(ast) then
-	
 		local typefn, fn, tok = finalNode(ast)
 		return applyfinal(typefn, fn, tok, tokenrule)
 		
@@ -336,7 +340,22 @@ end
 local function setlabels (t)
 	return peg.setlabels(t)
 end
+local function lpeggsub (s, patt, repl)
+  patt = m.Cs((patt / repl + 1)^0)
+  return m.match(patt, s)
+end
 
+local function removespaces (t)
+    if type(t) == "table" then
+        for k,v in pairs(t) do -- for every element in the table
+            t[k] = removespaces(v)       -- recursively repeat the same procedure
+        end
+    else 
+        res = lpeggsub(t,SPACESex,'')
+		t = res
+    end
+	return t
+end
 
 local function parse (input, grammar, defs, errorfunction)
 	if not iscompiled(grammar) then
@@ -354,6 +373,10 @@ local function parse (input, grammar, defs, errorfunction)
 			err = errmsgs[e]
 		end
 		return r, msg ..  err .. " before '" .. sfail .. "'"
+	end
+	
+	if skipspaces then
+		r = removespaces(r)
 	end
 	return r
 end
