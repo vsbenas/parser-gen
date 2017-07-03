@@ -1,43 +1,47 @@
-pg = require "parser-gen"
-grammar = [[
+package.path = package.path .. ";../?.lua"
+local pg = require "parser-gen"
+local errs = {errMissingThen = 1}
+pg.setlabels(errs)
 
-  program <- stmt-sequence EOF;
-  stmt-sequence <- statement (';' statement)*;
-  statement <- if-stmt / repeat-stmt / assign-stmt / read-stmt / write-stmt;
-  if-stmt <- 'if' exp 'then'^{errMissingThen} stmt-sequence ('else' stmt-sequence)? 'end';
-  repeat-stmt <- 'repeat' stmt-sequence 'until' exp;
-  assign-stmt <- identifier ':=' exp;
-  read-stmt <- 'read' identifier;
-  write-stmt <- 'write' exp;
-  exp <- simple-exp (COMPARISON-OP simple-exp)*;
-  COMPARISON-OP <- '<' / '=';
-  simple-exp <- term (ADD-OP term)*;
-  ADD-OP <- '+' / '-';
-  term <- factor (MUL-OP factor)*;
-  MUL-OP <- '*' / '/';
-  factor <- '(' exp ')' / NUMBER / IDENTIFIER;
+local errNames = {"Missing then"}
 
-  NUMBER <- '-'? [09]+;
-  IDENTIFIER <- ([az] / [AZ])+;
+local grammar = pg.compile [[
 
-  SYNC <- ';' / '\n' / '\r';
+  program <- stmtsequence !.
+  stmtsequence <- statement (';' statement)*
+  statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
+  ifstmt <- 'if' exp ('then' / %{errMissingThen}) stmtsequence ('else' stmtsequence)? 'end'
+  repeatstmt <- 'repeat' stmtsequence 'until' exp
+  assignstmt <- IDENTIFIER ':=' exp
+  readstmt <- 'read' IDENTIFIER
+  writestmt <- 'write' exp
+  exp <- simpleexp (COMPARISONOP simpleexp)*
+  COMPARISONOP <- '<' / '='
+  simpleexp <- term (ADDOP term)*
+  ADDOP <- '+' / '-'
+  term <- factor (MULOP factor)*
+  MULOP <- '*' / '/'
+  factor <- '(' exp ')' / NUMBER / IDENTIFIER
+
+  NUMBER <- '-'? [0-9]+
+  IDENTIFIER <- [a-zA-Z]+
+  SYNC <- ';' / '\n' / '\r'
 
 ]]
 
-local function printerror(label,error,line,col)
-print("Error #"..label..": "..error.." on line "..line.."(col "..col..")")
+local function printerror(label,line,col)
+	print("Error #"..label..": "..errNames[label].." on line "..line.."(col "..col..")")
 end
 
-ret = {}
 
-local function ret.parse(input)
-	result, errors = pg.parse(input,grammar,printerror)
+local function parse(input)
+	result, errors = pg.parse(input,grammar,_,printerror)
 	return result, errors
 end
 
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	print(ret.parse(arg[1]))
+	print(parse(arg[1]))
 end
-
+local ret = {parse=parse}
 return ret

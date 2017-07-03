@@ -403,7 +403,7 @@ local function compile (input, defs)
 	end
 	if not mem[input] then
 		-- test for errors
-		re.setlabels(labels)
+		re.setlabels(tlabels)
 		re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
@@ -416,6 +416,7 @@ local function compile (input, defs)
 end
 
 local function setlabels (t)
+	tlabels=t
 	return peg.setlabels(t)
 end
 
@@ -428,14 +429,9 @@ local function parse (input, grammar, defs, errorfunction)
 	local r, e, sfail = m.match(grammar,input)
 	if not r then
 		local line, col = re.calcline(input, #input - #sfail)
-		local msg = "Error at line " .. line .. " (col " .. col .. "): "
-		local err
-		if e == 0 then 
-			err = "Syntax error"
-		else 
-			err = errmsgs[e]
+		if errorfunction then
+			errorfunction(e,line,col)
 		end
-		return r, msg ..  err .. " before '" .. sfail .. "'"
 	end
 
 	return r
