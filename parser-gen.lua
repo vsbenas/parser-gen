@@ -2,6 +2,11 @@ local m = require "lpeglabel"
 local peg = require "peg-parser"
 local re = require "relabel"
 
+local s = require "stack"
+-- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
+tokenstack = Stack:Create()
+
+
 local Predef = { nl = m.P"\n" }
 local mem = {} -- for compiled grammars
 
@@ -55,9 +60,6 @@ local function setSync(patt)
 end
 
 
-local s = require "stack"
--- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
-tokenstack = Stack:Create()
 
 local function token (patt)
 	local incapture = tokenstack:pop() -- returns nil if not in capture
