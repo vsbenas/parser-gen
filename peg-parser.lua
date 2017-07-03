@@ -43,7 +43,7 @@ local gram = [=[
 	labels			<- {| '{' {: label :} (',' {: label :})* '}' |}
 
 
-	alternative		<- ( {:''->'or':} {| {: seq :} ('/' ('/' {| {: labels :} S {: seq :} |} / S {: seq :} ) )* |} ) -> foldtable
+	alternative		<- ( {:''->'or':} {| {: seq :} ('/' (('/' {| {: labels :} S {: seq :} |}) / (S {: seq :} ) ) )* |} ) -> foldtable
 
 
 	seq		        <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
@@ -57,8 +57,8 @@ local gram = [=[
 
 
 	suffixaction	<- 	((		{[+*?]}
-					/ {'^'} {[+-]? num}
-					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {num})
+					/ {'^'} {[+-]? NUM}
+					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {NUM})
 					/ {'=>'} S funcname) S )
 
 
@@ -73,14 +73,14 @@ local gram = [=[
 					/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
 					/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
 					/ {| '.' {:action:''->'anychar':} |}
-					/ name S !arrow
+					/ name S !ARROW
 					/ '<' name '>'          -- old-style non terminals
 
 	grammar         <- {| definition+ |}
-	definition      <- {| (token  S arrow {:rule: exp :}) 
-					/ (nontoken  S arrow {:rule: exp :}) |}
+	definition      <- {| (token  S ARROW {:rule: exp :}) 
+					/ (nontoken  S ARROW {:rule: exp :}) |}
 
-	label			<- {| {:s: num / errorname -> tlabels :} |}
+	label			<- {| {:s: NUM / ERRORNAME -> tlabels :} |}
 
 	token 			<- {:rulename: [A-Z]+ ![0-9_] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
@@ -91,19 +91,18 @@ local gram = [=[
 	range           <- {| {:action:''->'range':} {:op1: {| {:s: ({: . :} ('-') {: [^]] :} ) -> concat :} |} :} |}
 
 	S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
-	name            <- {| {:nt: tokenname :} {:token:''->'1':} / {:nt: namestring :} |}
-	errorname		<- namestring
-	funcname		<- {| {:func: namestring :} |}
+	name            <- {| {:nt: TOKENNAME :} {:token:''->'1':} / {:nt: NAMESTRING :} |}
+	ERRORNAME		<- NAMESTRING
+	funcname		<- {| {:func: NAMESTRING :} |}
 
-	namestring		<- [A-Za-z][A-Za-z0-9_]*
-	tokenname		<- [A-Z]+ ![0-9_]
-	defname			<- {| {:s: namestring :} |}
-	arrow           <- '<-'
-	num             <- [0-9]+
+	NAMESTRING		<- [A-Za-z][A-Za-z0-9_]*
+	TOKENNAME		<- [A-Z]+ ![0-9_]
+	defname			<- {| {:s: NAMESTRING :} |}
+	ARROW           <- '<-'
+	NUM             <- [0-9]+
 	term          	<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 	string			<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined         <- {| {:action: '%':} {:op1: defname :} |}
-	
 ]=]
 
 local labels = {}

@@ -33,22 +33,15 @@ function equals(o1, o2, ignore_mt)
     return true
 end
 
--- SELF-DESCRIPTION
-gram = pg.compile(peg.gram, peg.defs)
-res1 = pg.parse(peg.gram,gram)
-assert(res1) -- parse succesful
-r = re.compile(peg.gram,peg.defs)
-res2 = r:match(peg.gram)
-assert(equals(res1, res2))
+local pr = peg.print_r
 
--- TESTING SPACES 
 
 -- terminals
 -- space allowed
 rule = pg.compile [[
-rule <- 'a' 'b'
+rule <-  'a'
 ]]
-str = "a     b"
+str = "a   a aa "
 res = pg.parse(str,rule)
 assert(res)
 
@@ -111,21 +104,37 @@ assert(res)
 
 -- TESTING CAPTURES
 
-r = pg.compile [[ rule <- {| {:'a' 'b':}* |} ]]
-res = pg.parse("a b   a    b ab", r)
+r = re.compile [[ rule <- {| {:'a' 'b':}* |} ]]
+res = re.match("ababab", r)
+
 assert(equals(res,{"ab","ab","ab"}))
 -- space in capture
---rule = pg.compile [[ rule <- {| {: 'a' :}* |} ]]
+
+rule = pg.compile [[ rule <- {| {: 'a' :}* |} ]]
 str = " a a a "
---res = pg.parse(str,rule)
---peg.print_r(res)
---assert(equals(res,{"a","a","a"})) -- fails
+res = pg.parse(str,rule)
+
+assert(equals(res,{"a","a","a"})) -- fails
 
 
 -- TESTING ERROR GENERATION
 
 
 -- TESTING RECOVERY GENERATION
+
+
+-- SELF-DESCRIPTION
+gram = pg.compile(peg.gram, peg.defs)
+res1 = pg.parse(peg.gram,gram)
+assert(res1) -- parse succesful
+
+
+r = re.compile(peg.gram,peg.defs)
+res2 = r:match(peg.gram)
+
+--peg.print_r(res2)
+
+assert(equals(res1, res2))
 
 
 print("all tests succesful")
