@@ -53,26 +53,18 @@ local skipspaces = true
 local function setSync(patt)
 	SYNCS = patt^0
 end
-local function nocap (s,i,caps)
-	return i + #caps
-end
-local sp = {}
-local processed = 0
-local function registerspaces(s,i,caps)
-	sp[i] = true
-	return i
-end
+
 
 local s = require "stack"
 -- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
-stack = Stack:Create()
+tokenstack = Stack:Create()
 
 local function token (patt)
-	local incapture = stack:pop() -- returns nil if not in capture
+	local incapture = tokenstack:pop() -- returns nil if not in capture
 	if not incapture and skipspaces then
 		return patt * SPACES^0
 	end
-	stack:push(1)
+	tokenstack:push(1)
 	return patt
 end
 
@@ -97,43 +89,25 @@ local function istoken (t)
 end
 
 local function isfinal(t)
-	if t["t"] or t["nt"] or t["func"] or t["s"] then
-		return true
-	else
-		return false
-	end
+	return t["t"] or t["nt"] or t["func"] or t["s"]
 end
 
 local function isaction(t)
-	if t["action"] then
-		return true
-	else
-		return false
-	end
+	return t["action"]
 end
 
 
 local function isrule(t)
-	if not t then return false end
-	if t["rulename"] then
-		return true
-	else
-		return false
-	end
+	return t and t["rulename"]
 end
 local function isgrammar(t)
 	if type(t) == "table" and not(t["action"]) then
 		return isrule(t[1])
-	else
-		return false
 	end
+	return false
 end
 local function iscapture (action)
-	if action == "=>" or action == "tcap" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap" then
-		return true
-	else
-		return false
-	end
+	return action == "=>" or action == "tcap" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap"
 end
 local function finalNode (t)
 	if t["t"] then
@@ -144,9 +118,8 @@ local function finalNode (t)
 		return "func", t["func"] -- function
 	elseif t["s"] then
 		return "s", t["s"]
-	else
-		return nil
 	end
+	return nil
 end
 local function specialrules(t, builder)
 	-- initialize values
@@ -164,7 +137,7 @@ local function specialrules(t, builder)
 				skipspaces = false
 			else
 				skipspaces = true
-				SPACES = (rule) -- todo: traverse rhs for nonterminals
+				SPACES = rule
 			end
 			builder[name] = rule
 		elseif name == "SYNC" then
@@ -213,7 +186,7 @@ end
 
 
 local function addspaces (caps)
-	local hastoken = stack:pop()
+	local hastoken = tokenstack:pop()
 	if hastoken == 1 and skipspaces then
 		return caps * SPACES^0
 	end
@@ -224,9 +197,8 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 	if action == "or" then
 		if labels then
 			return m.Rec(op1,op2,labels)
-		else
-			return op1 + op2
 		end
+		return op1 + op2
 	elseif action == "and" then
 		return op1 * op2
 	elseif action == "&" then
@@ -243,7 +215,7 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 		return op1^op2
 	elseif action == "->" then
 		return op1 / op2
-	-- in captures we remove spaces
+	-- in captures we add SPACES^0
 	elseif action == "=>" then
 		return addspaces(m.Cmt(op1,op2))
 	elseif action == "tcap" then
@@ -314,7 +286,7 @@ local function build(ast, defs)
 	if isgrammar(ast) then
 		return traverse(ast)
 	else
-		return SPACES^0 * traverse(ast)
+		return SPACES^0 * traverse(ast) -- input is not a grammar - skip spaces by default
 	end
 end
 
@@ -338,7 +310,7 @@ function traverse (ast, tokenrule)
 		
 		-- post-order traversal
 		if iscapture(act) then
-			stack:push(0) -- not found any tokens yet
+			tokenstack:push(0) -- not found any tokens yet
 		end
 		
 		ret1 = traverse(op1, tokenrule)
@@ -433,12 +405,7 @@ local function compile (input, defs)
 		re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
-		--peg.print_r(ast)
-		--print("AFTER")
-		-- add nosubs fields
-		--ast = preprocess(ast)
-		--peg.print_r(ast)
-		-- rebuild lpeg grammar
+		
 		ret = build(ast,defs)
 		
 		mem[input] = ret -- store if the user forgets to compile it
@@ -448,23 +415,6 @@ end
 
 local function setlabels (t)
 	return peg.setlabels(t)
-end
-function lpeggsub (s, patt, repl)
-  patt = m.Cs((patt / repl + 1)^0)
-  return m.match(patt, s)
-end
-
-function removespaces (t)
-    if type(t) == "table" then
-		print("table!")
-        for k,v in pairs(t) do -- for every element in the table
-            t[k] = removespaces(v)       -- recursively repeat the same procedure
-        end
-    else 
-        res = lpeggsub(t,SPACES,'')
-		t = res
-    end
-	return t
 end
 
 local function parse (input, grammar, defs, errorfunction)
@@ -485,10 +435,7 @@ local function parse (input, grammar, defs, errorfunction)
 		end
 		return r, msg ..  err .. " before '" .. sfail .. "'"
 	end
-	
-	--if skipspaces then
-	--	r = removespaces(r)
-	--end
+
 	return r
 end
 
