@@ -109,7 +109,7 @@ local function isgrammar(t)
 	return false
 end
 local function iscapture (action)
-	return action == "=>" or action == "tcap" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap"
+	return action == "=>" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap"
 end
 local function finalNode (t)
 	if t["t"] then
@@ -221,7 +221,7 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 	elseif action == "=>" then
 		return addspaces(m.Cmt(op1,op2))
 	elseif action == "tcap" then
-		return addspaces(m.Ct(op1))
+		return m.Ct(op1) -- nospaces
 	elseif action == "gcap" then
 		return addspaces(m.Cg(op1, op2))
 	elseif action == "bref" then
