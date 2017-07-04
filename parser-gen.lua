@@ -4,7 +4,7 @@ local re = require "relabel"
 
 local s = require "stack"
 -- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
-tokenstack = Stack:Create()
+local tokenstack = Stack:Create()
 
 
 local Predef = { nl = m.P"\n" }
@@ -354,49 +354,6 @@ function traversefortable (ast,rulename)
 	end
 end
 
-local function preprocess_aux (ast,ruletable)
-	
-	if not ast then
-		return false
-	elseif isgrammar(ast) then
-		return preprocess(ast)
-	elseif isfinal(ast) then
-		return ast
-	elseif isaction(ast) then
-		if iscapture(ast) then
-			error("cap")
-			for k,v in pairs(ruletable) do 
-				print(v)
-				if traversefortable(ast, v) then
-					error("Found it!")
-					ast["nosub"] = 1
-				end
-			end
-        else
-			ast["op1"] = preprocess_aux(ast["op1"],ruletable)
-			ast["op2"] = preprocess_aux(ast["op2"],ruletable)
-		end
-	end
-	return ast
-end
-local function preprocess (ast)
-	local rulehastable = {}
-	if isgrammar(ast) then
-		for k,v in pairs(ast) do 
-            local rulename = v["rulename"]
-			local rule = v["rule"]
-			if traversefortable(rule) then
-				rulehastable[rulename] = true
-			end
-        end
-		for k,v in pairs(ast) do 
-			local rule = v["rule"]
-			v["rule"] = preprocess_aux(rule)
-        end
-		return ast
-	end
-	return preprocess_aux(ast)
-end
 local function compile (input, defs)
 	if iscompiled(input) then 
 		return input 
