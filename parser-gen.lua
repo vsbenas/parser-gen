@@ -63,8 +63,12 @@ end
 
 local function token (patt)
 	local incapture = tokenstack:pop() -- returns nil if not in capture
-	if not incapture and skipspaces then
-		return patt * SPACES^0
+	if not incapture then
+		if skipspaces then
+			return patt * SPACES^0
+		else
+			return patt
+		end
 	end
 	tokenstack:push(1)
 	return patt
