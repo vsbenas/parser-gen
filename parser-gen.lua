@@ -336,27 +336,6 @@ function traverse (ast, tokenrule)
 	end
 
 end
-function traversefortable (ast,rulename)
-	if not ast then
-		return false
-	end
-	if isfinal(ast) then
-		if rulename and ast["nt"] == rulename then
-			return true
-		end
-		return false
-	end
-	if isaction(ast) then
-		if ast["action"] == "tcap" then
-			return true
-		end
-		ret1 = traversefortable(ast["op1"])
-		ret2 = traversefortable(ast["op2"])
-		return ret1 or ret2
-	else
-		return false
-	end
-end
 
 local function compile (input, defs)
 	if iscompiled(input) then 
