@@ -55,9 +55,38 @@ res = {t="string"}
 
 assert(equals(e,res))
 --[class]	character class
-e = f("[^a-zA-Z]")
-peg.print_r(e)
-res = {r="[^a-zA-Z]"}
+e = f("[^a-zA-Z01]")
+res = {
+	action = "invert",
+	op1 = {
+		action = "or",
+		op1 = {
+			action = "or",
+			op1 = {
+				action = "or",
+				op1 = {
+					action = "range",
+					op1 = {
+						s = "az"
+					}
+				},
+				op2 = {
+					action = "range",
+					op1 = {
+						s = "AZ"
+					}
+				}
+			},
+			op2 = {
+				t = "0"
+			}
+		},
+		op2 = {
+			t = "1"
+		}
+	}
+}	 
+
 
 assert(equals(e,res))
 
@@ -68,7 +97,7 @@ res = {action="anychar"}
 assert(equals(e,res))
 --%name	pattern defs[name] or a pre-defined pattern
 e = f("%name")
-res = {action="%", op1={nt="name"}}
+res = {action="%", op1={s="name"}}
 
 assert(equals(e,res))
 --name	non terminal
@@ -104,11 +133,12 @@ assert(equals(e,res))
 
 --{:name: p :}	named group capture
 e = f("{:g: name:}")
-res = {action="gcap", op1= {nt="name"} , op2={nt="g"}}
+res = {action="gcap", op1= {nt="name"} , op2={s="g"}}
 
 assert(equals(e,res))
 --{~ p ~}	substitution capture
 e = f("{~ name ~}")
+
 res = {action="subcap", op1= {nt="name"}}
 
 assert(equals(e,res))
@@ -120,7 +150,7 @@ assert(equals(e,res))
 
 --=name	back reference
 e = f("=name")
-res = {action="bref", op1= {nt="name"}}
+res = {action="bref", op1= {s="name"}}
 assert(equals(e,res))
 
 --p ?	optional match
@@ -155,12 +185,12 @@ assert(equals(e,res))
 
 --p -> 'string'	string capture
 e = f("name -> 'a'")
-res = {action="->", op1= {nt="name"}, op2 = {t="a"}}
+res = {action="->", op1= {nt="name"}, op2 = {s="a"}}
 assert(equals(e,res))
 
 --p -> "string"	string capture
 e = f('name -> "a"')
-res = {action="->", op1= {nt="name"}, op2 = {t="a"}}
+res = {action="->", op1= {nt="name"}, op2 = {s="a"}}
 assert(equals(e,res))
 
 --p -> num	numbered capture
@@ -233,23 +263,21 @@ assert(equals(e,res))
 -- error labels
 -- %{errName}
 
-peg.setLabels({errName=1})
+peg.setlabels({errName=1})
 e = f('%{errName}')
 
-res = {action="label", op1="1"}
+res = {action="label", op1={s="1"}}
 
 assert(equals(e,res))
 
 -- a //{errName,errName2} b
 
-peg.setLabels({errName=1, errName2=2})
+peg.setlabels({errName=1, errName2=2})
 e = f('a //{errName,errName2} b')
 
-res = {action="or", condition={"1","2"}, op1={nt="a"}, op2={nt="b"}}
+res = {action="or", condition={{s="1"},{s="2"}}, op1={nt="a"}, op2={nt="b"}}
 
 
 assert(equals(e,res))
-
--- todo: check prioritization(should be ok because rules correspond to the lpeg grammar of re)
 
 print("all tests succesful")
