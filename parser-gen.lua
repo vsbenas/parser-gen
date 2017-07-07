@@ -59,7 +59,7 @@ local function setSync(patt)
 	SYNCS = patt^0
 end
 
-local function matchspaces (patt)
+local function pattspaces (patt)
 	if skipspaces then
 		return patt * SPACES^0
 	else
@@ -71,7 +71,7 @@ end
 local function token (patt)
 	local incapture = tokenstack:pop() -- returns nil if not in capture
 	if not incapture then
-		return matchspaces(patt)
+		return pattspaces(patt)
 	end
 	tokenstack:push(1)
 	return patt
@@ -197,7 +197,7 @@ end
 local function addspaces (caps)
 	local hastoken = tokenstack:pop()
 	if hastoken == 1 then
-		return matchspaces(caps)
+		return pattspaces(caps)
 	end
 	return caps
 end
