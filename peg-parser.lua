@@ -80,9 +80,9 @@ local gram = [=[
 	definition      <- {| (token  S ARROW {:rule: exp :}) 
 					/ (nontoken  S ARROW {:rule: exp :}) |}
 
-	label			<- {| {:s: NUM / ERRORNAME -> tlabels :} |}
+	label			<- {| {:s: ERRORNAME :} |}
 
-	token 			<- {:rulename: [A-Z]+ ![0-9_] :} {:token:''->'1':}
+	token 			<- {:rulename: [A-Z]+ ![0-9_a-z] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
 	class           <- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
@@ -96,7 +96,7 @@ local gram = [=[
 	funcname		<- {| {:func: NAMESTRING :} |}
 
 	NAMESTRING		<- [A-Za-z][A-Za-z0-9_]*
-	TOKENNAME		<- [A-Z]+ ![0-9_]
+	TOKENNAME		<- [A-Z]+ ![0-9_a-z]
 	defname			<- {| {:s: NAMESTRING :} |}
 	ARROW           <- '<-'
 	NUM             <- [0-9]+
@@ -105,16 +105,7 @@ local gram = [=[
 	defined         <- {| {:action: '%':} {:op1: defname :} |}
 ]=]
 
-local labels = {}
-
-
-local function tlabels(name)
-	if not labels[name] then 
-		error("Error name '"..name.."' undefined!")
-	end
-	return tostring(labels[name])
-end
-local defs = {foldtable=foldtable, tlabels=tlabels, concat=concat}
+local defs = {foldtable=foldtable, concat=concat}
 peg.gram = gram
 peg.defs = defs
 local p = re.compile ( gram, defs)
@@ -178,7 +169,7 @@ function peg.pegToAST(input, defs)
 	return p:match(input, defs)
 end
 
-
+--[[
 function peg.setlabels(t)
 	for key,value in pairs(t) do
 		if (type(key) ~= "string") then
@@ -190,6 +181,7 @@ function peg.setlabels(t)
 	end
 	labels = t
 end
+]]--
 function peg.print_r ( t )  -- for debugging
     local print_r_cache={}
     local function sub_print_r(t,indent)
