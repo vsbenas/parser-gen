@@ -102,10 +102,12 @@ str = "  a     b  "
 res = pg.parse(str,rule)
 assert(res)
 
+
+
 -- TESTING CAPTURES
 
-r = re.compile [[ rule <- {| {:'a' 'b':}* |} ]]
-res = re.match("ababab", r)
+r = pg.compile [[ rule <- {| {:'a' 'b':}* |} ]]
+res = pg.parse("ababab", r)
 
 assert(equals(res,{"ab","ab","ab"}))
 -- space in capture
@@ -116,6 +118,31 @@ res = pg.parse(str,rule)
 
 assert(equals(res,{"a","a","a"})) -- fails
 
+-- TESTING ERROR LABELS
+local labs = {errName = "Error number 1",errName2 = "Error number 2"}
+pg.setlabels(labs)
+rule = pg.compile [[ rule <- 'a'* %{errName} ]]
+local errorcalled = false
+local function err(label, desc, line, col)
+	errorcalled = true
+	assert(desc == "Error number 1")
+end
+res = pg.parse("aaa",rule,_,err)
+assert(errorcalled)
+
+-- TESTING ERROR RECOVERY
+
+local labs = {errName = "Error number 1",errName2 = "Error number 2"}
+pg.setlabels(labs)
+
+rule = pg.compile [[ 
+rule <- As //{errName,errName2} Bs
+As <- 'a'* / %{errName2}
+Bs <- 'b'*
+]]
+res1 = pg.parse(" a a a",rule)
+res2 = pg.parse("b b b ",rule)
+assert(res1 and res2)
 
 -- TESTING ERROR GENERATION
 
