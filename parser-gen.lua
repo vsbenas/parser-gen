@@ -41,7 +41,7 @@ updatelocale()
 
 local definitions = {}
 local tlabels = {}
-
+local tdescs = {}
 -- lpeglabel related functions:
 local function sync (patt)
 	return (-patt * l.P(1))^0 -- skip until we find pattern
@@ -59,16 +59,19 @@ local function setSync(patt)
 	SYNCS = patt^0
 end
 
+local function matchspaces (patt)
+	if skipspaces then
+		return patt * SPACES^0
+	else
+		return patt
+	end
+end
 
 
 local function token (patt)
 	local incapture = tokenstack:pop() -- returns nil if not in capture
 	if not incapture then
-		if skipspaces then
-			return patt * SPACES^0
-		else
-			return patt
-		end
+		return matchspaces(patt)
 	end
 	tokenstack:push(1)
 	return patt
@@ -193,16 +196,24 @@ end
 
 local function addspaces (caps)
 	local hastoken = tokenstack:pop()
-	if hastoken == 1 and skipspaces then
-		return caps * SPACES^0
+	if hastoken == 1 then
+		return matchspaces(caps)
 	end
 	return caps
 end
 
 local function applyaction(action, op1, op2, labels,tokenrule)
 	if action == "or" then
-		if labels then
-			return m.Rec(op1,op2,labels)
+		if labels then -- labels = {{s="errName"},{s="errName2"}}
+			for i, v in ipairs(labels) do
+				local labname = v["s"]
+				local lab = tlabels[labname]
+				if not lab then
+					error("Label '"..labname.."' undefined")
+				end
+				labels[i] = lab
+			end
+			return m.Rec(op1,op2,unpack(labels))
 		end
 		return op1 + op2
 	elseif action == "and" then
@@ -239,7 +250,11 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 	elseif action == "anychar" then
 		return m.P(1)
 	elseif action == "label" then
-		return m.T(op1) -- lpeglabel
+		local lab = tlabels[op1]
+		if not lab then
+			error("Label '"..op1.."' unspecified using setlabels()")
+		end
+		return m.T(lab) -- lpeglabel
 	elseif action == "%" then
 		if Predef[op1] then
 			return Predef[op1]
@@ -342,22 +357,35 @@ local function compile (input, defs)
 		return input 
 	end
 	if not mem[input] then
-		-- test for errors
-		re.setlabels(tlabels)
-		re.compile(input,defs)
+
 		-- build ast
 		ast = peg.pegToAST(input)
 		
 		ret = build(ast,defs)
+		if not ret then
+			-- find error using relabel module
+			re.setlabels(tlabels)
+			re.compile(input,defs)
+		end
 		
 		mem[input] = ret -- store if the user forgets to compile it
 	end
 	return mem[input]
 end
 
+-- t = {errName="Error description",...}
 local function setlabels (t)
-	tlabels=t
-	return peg.setlabels(t)
+	local index = 1
+	tlabels = {}
+	tdescs = {}
+	for key,value in pairs(t) do
+		if index >= 255 then
+			error("Error label limit reached(255)")
+		end
+		tlabels[key] = index
+		tdescs[index] = value
+		index = index + 1
+	end
 end
 
 local function parse (input, grammar, defs, errorfunction)
@@ -370,7 +398,13 @@ local function parse (input, grammar, defs, errorfunction)
 	if not r then
 		local line, col = re.calcline(input, #input - #sfail)
 		if errorfunction then
-			errorfunction(e,line,col)
+			local desc
+			if e == 0 then
+				desc = "Syntax error"
+			else
+				desc = tdescs[e]
+			end
+			errorfunction(e,desc,line,col)
 		end
 	end
 
