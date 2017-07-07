@@ -263,19 +263,19 @@ assert(equals(e,res))
 -- error labels
 -- %{errName}
 
-peg.setlabels({errName=1})
+--peg.setlabels({errName=1})
 e = f('%{errName}')
 
-res = {action="label", op1={s="1"}}
+res = {action="label", op1={s="errName"}}
 
 assert(equals(e,res))
 
 -- a //{errName,errName2} b
 
-peg.setlabels({errName=1, errName2=2})
+--peg.setlabels({errName=1, errName2=2})
 e = f('a //{errName,errName2} b')
 
-res = {action="or", condition={{s="1"},{s="2"}}, op1={nt="a"}, op2={nt="b"}}
+res = {action="or", condition={{s="errName"},{s="errName2"}}, op1={nt="a"}, op2={nt="b"}}
 
 
 assert(equals(e,res))
