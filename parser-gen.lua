@@ -114,6 +114,10 @@ local function isgrammar(t)
 	end
 	return false
 end
+local function bug()
+	local a,b = "", ""
+	return "" , ""
+end
 local function iscapture (action)
 	return action == "=>" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap"
 end

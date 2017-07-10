@@ -122,7 +122,7 @@ local f = assert(io.open(filename, "r"))
 local t = f:read("*all")
 local res = pg.parse(t,grammar)
 print(res)
-print(t:sub(1,res))
+print(t:sub(1,res-1))
 f:close()
 --[[
 	
