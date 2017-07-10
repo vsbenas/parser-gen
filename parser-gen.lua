@@ -44,7 +44,7 @@ local tlabels = {}
 local tdescs = {}
 -- lpeglabel related functions:
 local function sync (patt)
-	return (-patt * l.P(1))^0 -- skip until we find pattern
+	--return (-patt * l.P(1))^0 -- skip until we find pattern
 end
 
 local SPACES = (Predef.space + Predef.nl)
@@ -145,6 +145,7 @@ local function specialrules(t, builder)
 			if v["rule"]["t"] == '' then
 				skipspaces = false
 			else
+				
 				skipspaces = true
 				SPACES = rule
 			end
@@ -240,7 +241,7 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 	elseif action == "gcap" then
 		return addspaces(m.Cg(op1, op2))
 	elseif action == "bref" then
-		return m.Cmt(m.Cb(op1), equalcap) -- do we need to add spaces to bcap?
+		return m.Cb(op1) --m.Cmt(m.Cb(op1), equalcap) -- do we need to add spaces to bcap?
 	elseif action == "poscap" then
 		return addspaces(m.Cp())
 	elseif action == "subcap" then
@@ -357,15 +358,15 @@ local function compile (input, defs)
 		return input 
 	end
 	if not mem[input] then
-
+		re.setlabels(tlabels)
+		re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
 		
 		ret = build(ast,defs)
 		if not ret then
 			-- find error using relabel module
-			re.setlabels(tlabels)
-			re.compile(input,defs)
+
 		end
 		
 		mem[input] = ret -- store if the user forgets to compile it
