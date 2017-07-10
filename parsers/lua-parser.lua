@@ -6,6 +6,7 @@ Based on https://github.com/antlr/grammars-v4/blob/master/lua/Lua.g4 and https:/
 ]==]
 function equals(s,i,a,b) return #a == #b end
 package.path = package.path .. ";../?.lua"
+function tryprint(s,i,...) print(i) print(...) return true end
 local pg = require "parser-gen"
 local grammar = pg.compile([==[
 	chunk	<-	block 
@@ -33,13 +34,13 @@ local grammar = pg.compile([==[
 	explist	<- exp (',' exp)*
 	exp	<-	expTokens expOps?
 	expTokens	<-	'nil' / 'false' / 'true' /
+					operatorUnary exp /
 					number /
 					string /
 					'...' /
 					functiondef /
 					prefixexp /
-					tableconstructor /
-					operatorUnary exp
+					tableconstructor 
 	expOps	<-	operatorPower exp / -- assoc= right
 				operatorMulDivMod exp / -- left
 				operatorAddSub exp /
@@ -75,46 +76,46 @@ local grammar = pg.compile([==[
 	string	<- NORMALSTRING / CHARSTRING / LONGSTRING    
 	-- lexer
 	NAME	<- [a-zA-Z_][a-zA-Z_0-9]*
-	NORMALSTRING	<-	'"' ( EscapeSequence / [^\"] )* '"'
-	CHARSTRING	<- "'" ( EscapeSequence / [^\'] )* "'"
-	LONGSTRING	<- Open (!CloseEq .)* Close
-	Open <- '[' {:openEq: Equals :} '[' %nl?
-	Close <- ']' {:closeEq: Equals :} ']'
-	Equals <- '='*
-	CloseEq <- Close ((=openEq =closeEq) => equals)
+	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"' 
+	CHARSTRING	<- "'" ( ESC / [^\'] )* "'"
+	LONGSTRING	<- OPEN (!CLOSEEQ .)* CLOSE
+	OPEN <- '[' {:openEq: EQUALS :} '[' %nl?
+	CLOSE <- ']' {:closeEq: EQUALS :} ']'
+	EQUALS <- '='*
+	CLOSEEQ <- CLOSE ((=openEq =closeEq) => equals)
 
-	INT	<- Digit+
-	HEX	<- '0' [xX] HexDigit+
-	FLOAT	<- Digit+ '.' Digit* ExponentPart? /
-				'.' Digit+ ExponentPart? /
-				Digit+ ExponentPart
-	HEX_FLOAT	<-	'0' [xX] HexDigit+ '.' HexDigit* HexExponentPart? /
-					'0' [xX] '.' HexDigit+ HexExponentPart? /
-					'0' [xX] HexDigit+ HexExponentPart
+	INT	<- DIGIT+
+	HEX	<- '0' [xX] HEXDIGIT+
+	FLOAT	<- DIGIT+ '.' DIGIT* ExponentPart? /
+				'.' DIGIT+ ExponentPart? /
+				DIGIT+ ExponentPart
+	HEX_FLOAT	<-	'0' [xX] HEXDIGIT+ '.' HEXDIGIT* HexExponentPart? /
+					'0' [xX] '.' HEXDIGIT+ HexExponentPart? /
+					'0' [xX] HEXDIGIT+ HexExponentPart
 	
-	ExponentPart	<- [eE] [+-]? Digit+ -- fragment
-	HexExponentPart	<-	[pP] [+-]? Digit+ -- fragment
-	EscapeSequence	<-	'\' [abfnrtvz"'\]	/ -- fragment
-						'\' '\r'? %nl /
-						DecimalEscape /
-						HexEscape /
-						UtfEscape 
-	DecimalEscape	<- '\' ( Digit Digit? / [0-2] Digit Digit) -- fragment
-	HexEscape	<- '\' 'x' HexDigit HexDigit -- fragment
-	UtfEscape	<- '\' 'u{' HexDigit+ '}' -- fragment
-	Digit	<-	[0-9] -- fragment
-	HexDigit	<-	[0-9a-fA-F] -- fragment
+	ExponentPart	<- [eE] [+-]? DIGIT+ -- fragment
+	HexExponentPart	<-	[pP] [+-]? DIGIT+ -- fragment
+	ESC	<-	'\' [abfnrtvz"'\]	/ -- fragment
+			'\' %nl /
+			DECESC /
+			HEXESC/
+			UTFESC 
+	DECESC	<- '\' ( DIGIT DIGIT? / [0-2] DIGIT DIGIT) -- fragment
+	HEXESC	<- '\' 'x' HEXDIGIT HEXDIGIT -- fragment
+	UTFESC	<- '\' 'u{' HEXDIGIT+ '}' -- fragment
+	DIGIT	<-	[0-9] -- fragment
+	HEXDIGIT	<-	[0-9a-fA-F] -- fragment
 	COMMENT	<- '--' LONGSTRING -- skip this
-	LINE_COMMENT	<-	'--' COMMENT_TYPES ( %nl '\r' / '\r' / %nl / !.)
-	COMMENT_TYPES	<-	'[' '='* /
-						'[' '='* [^[=%nl\r] [^%nl\r]* /
+	LINE_COMMENT	<-	'--' COMMENT_TYPES ( %nl / !.)
+	COMMENT_TYPES	<-	'[' '='* [^[=%nl] [^%nl]* /
+						'[' '='* /
 						[^[%nl] [^%nl]* /
 						''
 
-	SHEBANG	<- '#' '!' [^%nl\r]*
+	SHEBANG	<- '#' '!' [^%nl]*
 	SPACES	<- %nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 				 
 			
-]==],{ equals = equals})
+]==],{ equals = equals,tryprint = tryprint})
 
 local filename = "../parser-gen.lua"
 local f = assert(io.open(filename, "r"))
