@@ -7,7 +7,7 @@ local s = require "stack"
 local tokenstack = Stack:Create()
 
 
-local Predef = { nl = m.P"\n" }
+local Predef = { nl = m.P"\n", cr = m.P"\r", tab = m.P"\t" }
 local mem = {} -- for compiled grammars
 
 
@@ -67,7 +67,6 @@ local function pattspaces (patt)
 	end
 end
 
-
 local function token (patt)
 	local incapture = tokenstack:pop() -- returns nil if not in capture
 	if not incapture then
@@ -118,9 +117,11 @@ end
 local function iscapture (action)
 	return action == "=>" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap"
 end
+
 local function finalNode (t)
+	if t.tx then return "aaaaaa",false end
 	if t["t"] then
-		return "t", t["t"] -- terminal
+		return"t",t["t"] -- terminal
 	elseif t["nt"] then
 		return "nt", t["nt"], istoken(t) -- nonterminal
 	elseif t["func"] then

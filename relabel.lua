@@ -89,7 +89,7 @@ end
 
 
 -- Pre-defined names
-local Predef = { nl = m.P"\n" }
+local Predef ={ nl = m.P"\n", cr = m.P"\r", tab = m.P"\t" }
 local tlabels = {}
 
 
