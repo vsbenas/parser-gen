@@ -69,7 +69,7 @@ local grammar = pg.compile([==[
 	operatorComparison<-	'<=' / '>=' / '~=' / '==' / '<' / '>' 
 	operatorStrcat	<-	'..'
 	operatorAddSub	<-	'+' / '-'
-	operatorMulDivMod	<-	'*' / '%' / '//' / '/' 
+	operatorMulDivMod<-	'*' / '%' / '//' / '/' 
 	operatorBitwise	<-	'&' / '|' / '~' / '<<' / '>>'
 	operatorUnary	<-	'not' / '#' / '-' / '~'
 	operatorPower	<-	'^'
@@ -86,8 +86,8 @@ local grammar = pg.compile([==[
 	EQUALS 		<-	'='*
 	CLOSEEQ 	<-	CLOSE ((=openEq =closeEq) => equals)
 
-	INT			<-	DIGIT+
-	HEX			<-	'0' [xX] HEXDIGIT+
+	INT		<-	DIGIT+
+	HEX		<-	'0' [xX] HEXDIGIT+
 	FLOAT		<-	DIGIT+ '.' DIGIT* ExponentPart? /
 					'.' DIGIT+ ExponentPart? /
 					DIGIT+ ExponentPart
