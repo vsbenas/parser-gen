@@ -33,7 +33,7 @@ local grammar = pg.compile([==[
 	varlist		<-	var (',' var)*
 	namelist	<-	NAME (',' NAME)*
 	explist		<-	exp (',' exp )*
-	exp			<-	expTokens expOps?
+	exp		<-	expTokens expOps?
 	expTokens	<-	'nil' / 'false' / 'true' /
 					operatorUnary exp /
 					number /
@@ -51,7 +51,7 @@ local grammar = pg.compile([==[
 					operatorAnd exp /
 					operatorOr exp 
 	prefixexp	<-	varOrExp nameAndArgs*
-	functioncall<-	!retstat varOrExp nameAndArgs+
+	functioncall	<-	!retstat varOrExp nameAndArgs+
 	varOrExp	<-	var / '(' exp ')'
 	var		<-	(NAME / '(' exp ')' varSuffix) varSuffix* 
 	varSuffix	<-	nameAndArgs* ('[' exp ']' / '.' NAME)
