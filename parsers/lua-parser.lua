@@ -60,7 +60,7 @@ local grammar = pg.compile([==[
 	functiondef	<-	'function' funcbody
 	funcbody	<-	'(' parlist? ')' block 'end'
 	parlist		<-	namelist (',' '...')? / '...'
-	tableconstructor	<-	'{' fieldlist? '}'
+	tableconstructor<-	'{' fieldlist? '}'
 	fieldlist	<-	field (fieldsep field)* fieldsep?
 	field		<-	'[' exp ']' '=' exp / NAME '=' exp / exp
 	fieldsep	<-	',' / ';'
