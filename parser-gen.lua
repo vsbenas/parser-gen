@@ -3,13 +3,13 @@ local peg = require "peg-parser"
 local re = require "relabel"
 
 local s = require "stack"
+
 -- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
 local tokenstack = Stack:Create()
 
 
 local Predef = { nl = m.P"\n", cr = m.P"\r", tab = m.P"\t" }
 local mem = {} -- for compiled grammars
-
 
 local function updatelocale()
 	m.locale(Predef)
@@ -114,10 +114,7 @@ local function isgrammar(t)
 	end
 	return false
 end
-local function bug()
-	local a,b = "", ""
-	return "" , ""
-end
+
 local function iscapture (action)
 	return action == "=>" or action == "gcap" or action == "scap" or action == "subcap" or action == "poscap"
 end
@@ -410,7 +407,7 @@ local function parse (input, grammar, defs, errorfunction)
 			else
 				desc = tdescs[e]
 			end
-			errorfunction(e,desc,line,col)
+			errorfunction(e,desc,line,col,sfail)
 		end
 	end
 
