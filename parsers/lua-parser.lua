@@ -53,7 +53,7 @@ local grammar = pg.compile([==[
 	prefixexp	<-	varOrExp nameAndArgs*
 	functioncall<-	!retstat varOrExp nameAndArgs+
 	varOrExp	<-	var / '(' exp ')'
-	var			<-	(NAME / '(' exp ')' varSuffix) varSuffix* 
+	var		<-	(NAME / '(' exp ')' varSuffix) varSuffix* 
 	varSuffix	<-	nameAndArgs* ('[' exp ']' / '.' NAME)
 	nameAndArgs	<-	(':' NAME)? args
 	args		<-	'(' explist? ')' / tableconstructor / string
@@ -66,7 +66,7 @@ local grammar = pg.compile([==[
 	fieldsep	<-	',' / ';'
 	operatorOr	<-	'or'
 	operatorAnd	<-	'and'
-	operatorComparison	<-	'<=' / '>=' / '~=' / '==' / '<' / '>' 
+	operatorComparison<-	'<=' / '>=' / '~=' / '==' / '<' / '>' 
 	operatorStrcat	<-	'..'
 	operatorAddSub	<-	'+' / '-'
 	operatorMulDivMod	<-	'*' / '%' / '//' / '/' 
@@ -77,7 +77,7 @@ local grammar = pg.compile([==[
 	string		<-	NORMALSTRING / CHARSTRING / LONGSTRING    
 	-- lexer
 	NAME		<-	[a-zA-Z_][a-zA-Z_0-9]*
-	NORMALSTRING<-	'"' ( ESC / [^"\] )* '"' 
+	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"' 
 	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"
 	
 	LONGSTRING	<-	OPEN (!CLOSEEQ .)* CLOSE
@@ -95,9 +95,9 @@ local grammar = pg.compile([==[
 					'0' [xX] '.' HEXDIGIT+ HexExponentPart? /
 					'0' [xX] HEXDIGIT+ HexExponentPart
 	
-	ExponentPart<-	[eE] [+-]? DIGIT+ -- fragment
-HexExponentPart	<-	[pP] [+-]? DIGIT+ -- fragment
-	ESC			<-	'\' [abfnrtvz"'\] / -- fragment
+	ExponentPart	<-	[eE] [+-]? DIGIT+ -- fragment
+	HexExponentPart	<-	[pP] [+-]? DIGIT+ -- fragment
+	ESC		<-	'\' [abfnrtvz"'\] / -- fragment
 					'\' %nl /
 					DECESC /
 					HEXESC/
@@ -108,7 +108,7 @@ HexExponentPart	<-	[pP] [+-]? DIGIT+ -- fragment
 	DIGIT		<-	[0-9] -- fragment
 	HEXDIGIT	<-	[0-9a-fA-F] -- fragment
 	COMMENT		<-	'--' LONGSTRING -- skip this
-	LINE_COMMENT<-	'--' COM_TYPES ( %nl / !.)
+	LINE_COMMENT	<-	'--' COM_TYPES ( %nl / !.)
 	COM_TYPES	<-	'[' '='* [^[=%nl] [^%nl]* /
 					'[' '='* /
 					[^[%nl] [^%nl]* /
@@ -126,7 +126,7 @@ local function err(e,desc,line,col,sfail)
 end
 local res = pg.parse(t,grammar,_,err)
 print(res)
-print(t:sub(1,res-1))
+
 --[[
 	
 --]]
