@@ -47,7 +47,7 @@ local function sync (patt)
 	--return (-patt * l.P(1))^0 -- skip until we find pattern
 end
 
-local SPACES = (Predef.space + Predef.nl)
+local SKIP = (Predef.space + Predef.nl)
 local SYNCS = (Predef.nl)^0
 
 local recovery = true
@@ -61,7 +61,7 @@ end
 
 local function pattspaces (patt)
 	if skipspaces then
-		return patt * SPACES^0
+		return patt * SKIP^0
 	else
 		return patt
 	end
@@ -134,7 +134,7 @@ local function finalNode (t)
 end
 local function specialrules(t, builder)
 	-- initialize values
-	SPACES = (Predef.space + Predef.nl)
+	SKIP = (Predef.space + Predef.nl)
 	skipspaces = true
 	SYNCS = (Predef.nl)^0
 	recovery = true
@@ -142,14 +142,14 @@ local function specialrules(t, builder)
 	for i, v in ipairs(ast) do
 		local name = v["rulename"]
 		local rule
-		if name == "SPACES" then
+		if name == "SKIP" then
 			rule = traverse(v["rule"], true)
 			if v["rule"]["t"] == '' then
 				skipspaces = false
 			else
 				
 				skipspaces = true
-				SPACES = rule
+				SKIP = rule
 			end
 			builder[name] = rule
 		elseif name == "SYNC" then
@@ -176,7 +176,7 @@ local function buildgrammar (ast)
 			table.insert(builder, name) -- lpeg syntax
 			if not builder[name] then
 				if skipspaces then
-					builder[name] = SPACES^0 * traverse(rule, istokenrule) -- skip spaces at the beginning of the input
+					builder[name] = SKIP^0 * traverse(rule, istokenrule) -- skip spaces at the beginning of the input
 				else
 					builder[name] = traverse(rule, istokenrule)
 				end
@@ -310,7 +310,7 @@ local function build(ast, defs)
 	if isgrammar(ast) then
 		return traverse(ast)
 	else
-		return SPACES^0 * traverse(ast) -- input is not a grammar - skip spaces by default
+		return SKIP^0 * traverse(ast) -- input is not a grammar - skip spaces by default
 	end
 end
 

@@ -56,7 +56,7 @@ assert(not res)
 -- space not allowed 2
 rule = pg.compile [[
 rule <- 'a' 'b'
-SPACES <- ''
+SKIP <- ''
 ]]
 str = "a     b"
 res = pg.parse(str,rule)
@@ -65,7 +65,7 @@ assert(not res)
 -- custom space
 rule = pg.compile [[
 rule <- 'a' 'b'
-SPACES <- DOT
+SKIP <- DOT
 DOT <- '.'
 ]]
 str = "a...b"

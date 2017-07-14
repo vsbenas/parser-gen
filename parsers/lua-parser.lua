@@ -120,7 +120,7 @@ local grammar = pg.compile([==[
 					[^[%nl] [^%nl]* /
 					''
 	SHEBANG		<-	'#' '!' [^%nl]*
-	SPACES		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 				 
+	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 				 
 			
 ]==],{ equals = equals,tryprint = tryprint})
 
