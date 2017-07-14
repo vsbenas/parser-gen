@@ -82,7 +82,7 @@ local gram = [=[
 
 	label			<- {| {:s: ERRORNAME :} |}
 
-	token 			<- {:rulename: [A-Z]+ ![0-9_a-z] :} {:token:''->'1':}
+	token 			<- {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
 	class           <- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
@@ -96,7 +96,7 @@ local gram = [=[
 	funcname		<- {| {:func: NAMESTRING :} |}
 
 	NAMESTRING		<- [A-Za-z][A-Za-z0-9_]*
-	TOKENNAME		<- [A-Z]+ ![0-9_a-z]
+	TOKENNAME		<- [A-Z_]+ ![0-9a-z]
 	defname			<- {| {:s: NAMESTRING :} |}
 	ARROW           <- '<-'
 	NUM             <- [0-9]+
