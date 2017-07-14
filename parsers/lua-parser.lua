@@ -6,16 +6,17 @@ Based on https://github.com/antlr/grammars-v4/blob/master/lua/Lua.g4 and https:/
 ]==]
 function equals(s,i,a,b) return #a == #b end
 package.path = package.path .. ";../?.lua"
-function tryprint(s,i,...) print(i) print(...) return true end
+function tryprint(s,i,...) print(...) return true end
 local pg = require "parser-gen"
 pg.setlabels({test="Test"})
 local grammar = pg.compile([==[
 	chunk		<-	block !.
 	block		<-	stat* retstat?
 	stat		<-	';' /
+					functioncall /
 					'break' /
 					'goto' NAME /
-					'do' block 'end' /
+					'do' block 'end'  /
 					'while' exp 'do' block 'end' /
 					'repeat' block 'until' exp /
 					'if' exp 'then' block ('elseif' exp 'then' block)* ('else' block)? 'end' /
@@ -25,7 +26,6 @@ local grammar = pg.compile([==[
 					'local' 'function' NAME funcbody /
 					'local' namelist ('=' explist)? /
 					varlist '=' explist /
-					functioncall /
 					label 
 	retstat		<-	'return' explist? ';'?
 	label		<-	'::' NAME '::'
@@ -77,7 +77,7 @@ local grammar = pg.compile([==[
 	string		<-	NORMALSTRING / CHARSTRING / LONGSTRING    
 	-- lexer
 	RESERVED	<-	KEYWORDS ![a-zA-Z_0-9]
-	KEYWORDS	<-  'and' / 'break' / 'do' / 'elseif' / 'else' / 'end' /
+	KEYWORDS	<-	'and' / 'break' / 'do' / 'elseif' / 'else' / 'end' /
 					'false' / 'for' / 'function' / 'goto' / 'if' / 'in' /
 					'local' / 'nil' / 'not' / 'or' / 'repeat' / 'return' /
 					'then' / 'true' / 'until' / 'while'

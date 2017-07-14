@@ -1,6 +1,6 @@
 local lua = require "lua-parser"
 local filenames = {
---'all.lua',
+'all.lua', -- takes long for some reason
 'main.lua',
 'gc.lua',
 'db.lua',
@@ -37,7 +37,7 @@ for k,v in ipairs(filenames) do
 
 	local res = lua.parse(t)
 	local s = "OK"
-	if not res then s = "FAIL" end
+	if not res then s = "FAIL" end -- only check if succesful since grammar ensures whole file is read
 	print("Testing file '"..v.."': ["..s.."]")
 	f:close()
 end
