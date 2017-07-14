@@ -73,10 +73,16 @@ local grammar = pg.compile([==[
 	operatorBitwise	<-	'&' / '|' / '~' / '<<' / '>>'
 	operatorUnary	<-	'not' / '#' / '-' / '~'
 	operatorPower	<-	'^'
-	number		<-	INT / HEX / FLOAT / HEX_FLOAT    
+	number		<-	FLOAT / HEX_FLOAT / HEX / INT
 	string		<-	NORMALSTRING / CHARSTRING / LONGSTRING    
 	-- lexer
-	NAME		<-	[a-zA-Z_][a-zA-Z_0-9]*
+	RESERVED	<-	KEYWORDS ![a-zA-Z_0-9]
+	KEYWORDS	<-  'and' / 'break' / 'do' / 'elseif' / 'else' / 'end' /
+					'false' / 'for' / 'function' / 'goto' / 'if' / 'in' /
+					'local' / 'nil' / 'not' / 'or' / 'repeat' / 'return' /
+					'then' / 'true' / 'until' / 'while'
+	NAME		<-	!RESERVED [a-zA-Z_] [a-zA-Z_0-9]*
+	
 	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"' 
 	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"
 	
@@ -117,16 +123,15 @@ local grammar = pg.compile([==[
 	SPACES		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 				 
 			
 ]==],{ equals = equals,tryprint = tryprint})
-local filename = "../parser-gen.lua"
-local f = assert(io.open(filename, "r"))
-local t = f:read("*all")
+
 
 local function err(e,desc,line,col,sfail)
-	print(desc.."at "..line.."("..col..") before '"..sfail)
+	print(desc.."at "..line.."("..col..")")
 end
-local res = pg.parse(t,grammar,_,err)
-print(res)
-
+local function parse(input)
+	return pg.parse(input,grammar,_,err)
+end
+return {parse=parse}
 --[[
 	
 --]]
