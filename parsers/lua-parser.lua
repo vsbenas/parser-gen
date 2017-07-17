@@ -1,72 +1,169 @@
-
-
 --[==[ 
-Parser for Lua 5.3 [] [==]] ==[[]=-- -- ][]][---[]
+Parser for Lua 5.3
 Based on https://github.com/antlr/grammars-v4/blob/master/lua/Lua.g4 and https://github.com/andremm/lua-parser/blob/master/lua-parser/parser.lua
 ]==]
-function equals(s,i,a,b) return #a == #b end
 package.path = package.path .. ";../?.lua"
-function tryprint(s,i,...) print(...) return true end
 local pg = require "parser-gen"
-pg.setlabels({test="Test"})
+function equals(s,i,a,b) return #a == #b end
+function tryprint(s,i,a) print(a) return true end
+-- from  https://github.com/andremm/lua-parser/blob/master/lua-parser/parser.lua
+local labels = {
+	ErrExtra="unexpected character(s), expected EOF",
+	ErrInvalidStat="unexpected token, invalid start of statement",
+
+	ErrEndIf="expected 'end' to close the if statement",
+	ErrExprIf="expected a condition after 'if'",
+	ErrThenIf="expected 'then' after the condition",
+	ErrExprEIf="expected a condition after 'elseif'",
+	ErrThenEIf="expected 'then' after the condition",
+
+	ErrEndDo="expected 'end' to close the do block",
+	ErrExprWhile="expected a condition after 'while'",
+	ErrDoWhile="expected 'do' after the condition",
+	ErrEndWhile="expected 'end' to close the while loop",
+	ErrUntilRep="expected 'until' at the end of the repeat loop",
+	ErrExprRep="expected a conditions after 'until'",
+
+	ErrForRange="expected a numeric or generic range after 'for'",
+	ErrEndFor="expected 'end' to close the for loop",
+	ErrExprFor1="expected a starting expression for the numeric range",
+	ErrCommaFor="expected ',' to split the start and end of the range",
+	ErrExprFor2="expected an ending expression for the numeric range",
+	ErrExprFor3="expected a step expression for the numeric range after ','",
+	ErrInFor="expected '=' or 'in' after the variable(s)",
+	ErrEListFor="expected one or more expressions after 'in'",
+	ErrDoFor="expected 'do' after the range of the for loop",
+
+	ErrDefLocal="expected a function definition or assignment after local",
+	ErrNameLFunc="expected a function name after 'function'",
+	ErrEListLAssign="expected one or more expressions after '='",
+	ErrEListAssign="expected one or more expressions after '='",
+
+	ErrFuncName="expected a function name after 'function'",
+	ErrNameFunc1="expected a function name after '.'",
+	ErrNameFunc2="expected a method name after ':'",
+	ErrOParenPList="expected '(' for the parameter list",
+	ErrCParenPList="expected ')' to close the parameter list",
+	ErrEndFunc="expected 'end' to close the function body",
+	ErrParList="expected a variable name or '...' after ','",
+
+	ErrLabel="expected a label name after '::'",
+	ErrCloseLabel="expected '::' after the label",
+	ErrGoto="expected a label after 'goto'",
+	ErrRetList="expected an expression after ',' in the return statement", -- unused, ErrExprList is used
+
+	ErrVarList="expected a variable name after ','",
+	ErrExprList="expected an expression after ','",
+
+	ErrOrExpr="expected an expression after 'or'",
+	ErrAndExpr="expected an expression after 'and'",
+	ErrRelExpr="expected an expression after the relational operator",
+	ErrBOrExpr="expected an expression after '|'", -- unused
+	ErrBXorExpr="expected an expression after '~'", -- unused
+	ErrBAndExpr="expected an expression after '&'", -- unused
+	ErrBitwiseExpr="expected an expression after bitwise operator",
+	ErrShiftExpr="expected an expression after the bit shift", -- unused
+	ErrConcatExpr="expected an expression after '..'",
+	ErrAddExpr="expected an expression after the additive operator",
+	ErrMulExpr="expected an expression after the multiplicative operator",
+	ErrUnaryExpr="expected an expression after the unary operator",
+	ErrPowExpr="expected an expression after '^'",
+
+	ErrExprParen="expected an expression after '('",
+	ErrCParenExpr="expected ')' to close the expression",
+	ErrNameIndex="expected a field name after '.'",
+	ErrExprIndex="expected an expression after '['",
+	ErrCBracketIndex="expected ']' to close the indexing expression",
+	ErrNameMeth="expected a method name after ':'",
+	ErrMethArgs="expected some arguments for the method call (or '()')",
+
+	ErrArgList="expected an expression after ',' in the argument list", -- unused, used ErrExprList
+	ErrCParenArgs="expected ')' to close the argument list",
+
+	ErrCBraceTable="expected '}' to close the table constructor",
+	ErrEqField="expected '=' after the table key",
+	ErrExprField="expected an expression after '='",
+	ErrExprFKey="expected an expression after '[' for the table key",
+	ErrCBracketFKey="expected ']' to close the table key",
+
+	ErrDigitHex="expected one or more hexadecimal digits after '0x'",
+	ErrDigitDeci="expected one or more digits after the decimal point",
+	ErrDigitExpo="expected one or more digits for the exponent",
+
+	ErrQuote="unclosed string",
+	ErrHexEsc="expected exactly two hexadecimal digits after '\\x'",
+	ErrOBraceUEsc="expected '{' after '\\u'",
+	ErrDigitUEsc="expected one or more hexadecimal digits for the UTF-8 code point",
+	ErrCBraceUEsc="expected '}' after the code point",
+	ErrEscSeq="invalid escape sequence",
+	ErrCloseLStr="unclosed long string",
+}
+pg.setlabels(labels)
 local grammar = pg.compile([==[
-	chunk		<-	block !.
+	chunk		<-	block (!. / %{ErrExtra})
 	block		<-	stat* retstat?
 	stat		<-	';' /
-					functioncall /
+					functioncall => tryprint /
 					'break' /
-					'goto' NAME /
-					'do' block 'end'  /
-					'while' exp 'do' block 'end' /
-					'repeat' block 'until' exp /
-					'if' exp 'then' block ('elseif' exp 'then' block)* ('else' block)? 'end' /
-					'for' NAME '=' exp ',' exp (',' exp)? 'do' block 'end' /
-					'for' namelist 'in' explist 'do' block 'end' / 
-					'function' funcname funcbody / 
-					'local' 'function' NAME funcbody /
-					'local' namelist ('=' explist)? /
-					varlist '=' explist /
-					label 
+					'goto' (NAME / %{ErrGoto}) /
+					'do' block ('end' / %{ErrEndDo})  /
+					'while' (exp / %{ErrExprWhile}) ('do' / %{ErrDoWhile}) block ('end' / %{ErrEndWhile}) /
+					'repeat' block ('until' / %{ErrUntilRep}) (exp / %{ErrExprRep}) /
+					'if' (exp / %{ErrExprIf} ) ('then' / %{ErrThenIf}) block ('elseif' (exp / %{ErrExprEIf}) ('then'/ %{ErrThenEIf})  block)* ('else' block)? ('end' / %{ErrEndIf}) /
+					'for' (forNum / forIn / %{ErrForRange}) ('do'/ %{ErrDoFor})  block ('end' / %{ErrEndFor}) /
+					'function' (funcname / %{ErrFuncName}) funcbody / 
+					'local' (localFunc / localAssign / %{ErrDefLocal}) /
+					varlist '=' (explist / %{ErrEListAssign}) /
+					label /
+					!blockEnd %{ErrInvalidStat}
+	blockEnd	<- 'return' / 'end' / 'elseif' / 'else' / 'until' / !.
 	retstat		<-	'return' explist? ';'?
-	label		<-	'::' NAME '::'
-	funcname	<-	NAME ('.' NAME)* (':' NAME)?
-	varlist		<-	var (',' var)*
+	forNum		<-  NAME '=' (exp / %{ErrExprFor1}) (',' / %{ErrCommaFor}) (exp/ %{ErrExprFor2}) (',' (exp / %{ErrExprFor3}))?
+	forIn		<- 	namelist ('in' / %{ErrInFor}) (explist/ %{ErrEListFor}) 
+	localFunc	<-	'function' (NAME / %{ErrNameLFunc}) funcbody 
+	localAssign	<-	namelist ('=' (explist / %{ErrEListLAssign}))?
+	label		<-	'::' (NAME / %{ErrLabel}) ('::' / %{ErrCloseLabel})
+	funcname	<-	NAME ('.' (NAME / %{ErrNameFunc1}))* (':' (NAME / %{ErrNameFunc2}))?
+	varlist		<-	var (',' (var / %{ErrVarList}))*
 	namelist	<-	NAME (',' NAME)*
-	explist		<-	exp (',' exp )*
+	explist		<-	exp (',' (exp / %{ErrExprList}) )*
 	exp		<-	expTokens expOps?
 	expTokens	<-	'nil' / 'false' / 'true' /
-					operatorUnary exp /
+					operatorUnary (exp  / %{ErrUnaryExpr}) /
 					number /
 					string /
 					'...' /
 					functiondef /
 					prefixexp /
 					tableconstructor 
-	expOps		<-	operatorPower exp / -- assoc= right
-					operatorMulDivMod exp / -- left
-					operatorAddSub exp /
-					operatorStrcat exp / -- right
-					operatorBitwise exp /
-					operatorComparison exp /
-					operatorAnd exp /
-					operatorOr exp 
+	expOps		<-	operatorPower (exp  / %{ErrPowExpr}) / -- assoc= right
+					operatorMulDivMod (exp  / %{ErrMulExpr}) / -- left
+					operatorAddSub (exp  / %{ErrAddExpr}) /
+					operatorStrcat (exp  / %{ErrConcatExpr}) / -- right
+					operatorComparison (exp  / %{ErrRelExpr}) /
+					operatorBitwise (exp  / %{ErrBitwiseExpr}) /
+					operatorAnd (exp  / %{ErrAndExpr}) /
+					operatorOr (exp  / %{ErrOrExpr})
 	prefixexp	<-	varOrExp nameAndArgs*
-	functioncall	<-	!retstat varOrExp nameAndArgs+
-	varOrExp	<-	var / '(' exp ')'
-	var		<-	(NAME / '(' exp ')' varSuffix) varSuffix* 
-	varSuffix	<-	nameAndArgs* ('[' exp ']' / '.' NAME)
-	nameAndArgs	<-	(':' NAME)? args
-	args		<-	'(' explist? ')' / tableconstructor / string
+	functioncall	<-	varOrExp nameAndArgs+
+	varOrExp	<-	var / brackexp
+	brackexp	<-  '(' (exp  / %{ErrExprParen}) ( ')' / %{ErrCParenExpr})
+	var		<-	(NAME / brackexp varSuffix) varSuffix* 
+	varSuffix	<-	nameAndArgs* ('[' (exp  / %{ErrExprIndex}) (']' / %{ErrCBracketIndex})  / '.' (NAME / !'.' %{ErrNameIndex}))
+	nameAndArgs	<-	(':' (NAME / !':' %{ErrNameMeth}))? args -- / %{ErrMethArgs}
+	args		<-	'(' explist? (')' / %{ErrCParenArgs}) / tableconstructor / string
 	functiondef	<-	'function' funcbody
-	funcbody	<-	'(' parlist? ')' block 'end'
-	parlist		<-	namelist (',' '...')? / '...'
-	tableconstructor<-	'{' fieldlist? '}'
+	funcbody	<-	('(' / %{ErrOParenPList}) parlist? (')' / %{ErrCParenPList}) block ('end' / %{ErrEndFunc})
+	parlist		<-	namelist (',' ('...' / %{ErrParList}))? / '...'
+	tableconstructor<-	'{' fieldlist? ('}' / %{ErrCBraceTable})
 	fieldlist	<-	field (fieldsep field)* fieldsep?
-	field		<-	'[' exp ']' '=' exp / NAME '=' exp / exp
+	field		<-	'[' (exp / %{ErrExprFKey}) (']' / %{ErrCBracketFKey}) '=' (exp / %{ErrExprField}) /
+						NAME ('=') exp / --  / %{ErrEqField}
+						exp 
 	fieldsep	<-	',' / ';'
 	operatorOr	<-	'or'
 	operatorAnd	<-	'and'
-	operatorComparison<-	'<=' / '>=' / '~=' / '==' / '<' / '>' 
+	operatorComparison<-	'<=' / '>=' / '~=' / '==' / '<' !'<' / '>' !'>'
 	operatorStrcat	<-	'..'
 	operatorAddSub	<-	'+' / '-'
 	operatorMulDivMod<-	'*' / '%' / '//' / '/' 
@@ -83,34 +180,35 @@ local grammar = pg.compile([==[
 					'then' / 'true' / 'until' / 'while'
 	NAME		<-	!RESERVED [a-zA-Z_] [a-zA-Z_0-9]*
 	
-	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"' 
-	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"
+	NORMALSTRING	<-	'"' ( ESC / [^"\] )* ('"' /  %{ErrQuote})
+	CHARSTRING	<-	"'" ( ESC / [^\'] )* ("'" /  %{ErrQuote})
 	
-	LONGSTRING	<-	OPEN (!CLOSEEQ .)* CLOSE
+	LONGSTRING	<-	OPEN (!CLOSEEQ .)* (CLOSE  /  %{ErrCloseLStr})
 	OPEN 		<-	'[' {:openEq: EQUALS :} '[' %nl?
 	CLOSE 		<-	']' {:closeEq: EQUALS :} ']'
 	EQUALS 		<-	'='*
 	CLOSEEQ 	<-	CLOSE ((=openEq =closeEq) => equals)
 
 	INT		<-	DIGIT+
-	HEX		<-	'0' [xX] HEXDIGIT+
+	HEX		<-	'0' [xX] (HEXDIGIT+ / %{ErrDigitHex})
 	FLOAT		<-	DIGIT+ '.' DIGIT* ExponentPart? /
-					'.' DIGIT+ ExponentPart? /
+					'.' (DIGIT+ / !'.' %{ErrDigitDeci}) ExponentPart? /
 					DIGIT+ ExponentPart
 	HEX_FLOAT	<-	'0' [xX] HEXDIGIT+ '.' HEXDIGIT* HexExponentPart? /
 					'0' [xX] '.' HEXDIGIT+ HexExponentPart? /
-					'0' [xX] HEXDIGIT+ HexExponentPart
+					'0' [xX] (HEXDIGIT+ / %{ErrDigitHex}) HexExponentPart
 	
-	ExponentPart	<-	[eE] [+-]? DIGIT+ -- fragment
-	HexExponentPart	<-	[pP] [+-]? DIGIT+ -- fragment
+	ExponentPart	<-	[eE] [+-]? (DIGIT+ / %{ErrDigitExpo}) -- fragment
+	HexExponentPart	<-	[pP] [+-]? (DIGIT+ / %{ErrDigitExpo}) -- fragment
 	ESC		<-	'\' [abfnrtvz"'\] / -- fragment
 					'\' %nl /
 					DECESC /
 					HEXESC/
-					UTFESC 
+					UTFESC/
+					'\' %{ErrEscSeq}
 	DECESC		<-	'\' ( DIGIT DIGIT? / [0-2] DIGIT DIGIT) -- fragment
-	HEXESC		<-	'\' 'x' HEXDIGIT HEXDIGIT -- fragment
-	UTFESC		<-	'\' 'u{' HEXDIGIT+ '}' -- fragment
+	HEXESC		<-	'\' 'x' (HEXDIGIT HEXDIGIT  /  %{ErrHexEsc}) -- fragment
+	UTFESC		<-	'\' 'u' ('{' / %{ErrOBraceUEsc}) (HEXDIGIT+ /  %{ErrDigitUEsc}) ('}' /  %{ErrCBraceUEsc}) -- fragment
 	DIGIT		<-	[0-9] -- fragment
 	HEXDIGIT	<-	[0-9a-fA-F] -- fragment
 	COMMENT		<-	'--' LONGSTRING -- skip this

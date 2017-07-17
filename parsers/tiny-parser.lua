@@ -1,10 +1,8 @@
 package.path = package.path .. ";../?.lua"
 local pg = require "parser-gen"
 local peg = require "peg-parser"
-local errs = {errMissingThen = 1}
+local errs = {errMissingThen = "Missing Then"}
 pg.setlabels(errs)
-
-local errNames = {"Missing then"}
 
 
 local grammar = pg.compile [[
