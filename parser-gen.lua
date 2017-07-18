@@ -357,15 +357,15 @@ local function compile (input, defs)
 		return input 
 	end
 	if not mem[input] then
-		
+		re.setlabels(tlabels)
+		re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
 		
 		ret = build(ast,defs)
 		if not ret then
 			-- find error using relabel module
-			re.setlabels(tlabels)
-			re.compile(input,defs)
+			
 		end
 		if recovery then
 			

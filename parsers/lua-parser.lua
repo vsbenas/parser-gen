@@ -50,7 +50,6 @@ local labels = {
 	ErrLabel="expected a label name after '::'",
 	ErrCloseLabel="expected '::' after the label",
 	ErrGoto="expected a label after 'goto'",
-	ErrRetList="expected an expression after ',' in the return statement", -- unused, ErrExprList is used
 
 	ErrVarList="expected a variable name after ','",
 	ErrExprList="expected an expression after ','",
@@ -58,11 +57,9 @@ local labels = {
 	ErrOrExpr="expected an expression after 'or'",
 	ErrAndExpr="expected an expression after 'and'",
 	ErrRelExpr="expected an expression after the relational operator",
-	ErrBOrExpr="expected an expression after '|'", -- unused
-	ErrBXorExpr="expected an expression after '~'", -- unused
-	ErrBAndExpr="expected an expression after '&'", -- unused
+
 	ErrBitwiseExpr="expected an expression after bitwise operator",
-	ErrShiftExpr="expected an expression after the bit shift", -- unused
+
 	ErrConcatExpr="expected an expression after '..'",
 	ErrAddExpr="expected an expression after the additive operator",
 	ErrMulExpr="expected an expression after the multiplicative operator",
@@ -77,7 +74,7 @@ local labels = {
 	ErrNameMeth="expected a method name after ':'",
 	ErrMethArgs="expected some arguments for the method call (or '()')",
 
-	ErrArgList="expected an expression after ',' in the argument list", -- unused, used ErrExprList
+
 	ErrCParenArgs="expected ')' to close the argument list",
 
 	ErrCBraceTable="expected '}' to close the table constructor",
@@ -103,7 +100,7 @@ local grammar = pg.compile([==[
 	chunk		<-	block (!. / %{ErrExtra})
 	block		<-	stat* retstat?
 	stat		<-	';' /
-					functioncall => tryprint /
+					functioncall /
 					'break' /
 					'goto' (NAME / %{ErrGoto}) /
 					'do' block ('end' / %{ErrEndDo})  /
@@ -150,15 +147,16 @@ local grammar = pg.compile([==[
 	brackexp	<-  '(' (exp  / %{ErrExprParen}) ( ')' / %{ErrCParenExpr})
 	var		<-	(NAME / brackexp varSuffix) varSuffix* 
 	varSuffix	<-	nameAndArgs* ('[' (exp  / %{ErrExprIndex}) (']' / %{ErrCBracketIndex})  / '.' (NAME / !'.' %{ErrNameIndex}))
-	nameAndArgs	<-	(':' (NAME / !':' %{ErrNameMeth}))? args -- / %{ErrMethArgs}
+	nameAndArgs	<-	(':' (NAME / !':' %{ErrNameMeth}) (args / %{ErrMethArgs})) /
+					args
 	args		<-	'(' explist? (')' / %{ErrCParenArgs}) / tableconstructor / string
 	functiondef	<-	'function' funcbody
 	funcbody	<-	('(' / %{ErrOParenPList}) parlist? (')' / %{ErrCParenPList}) block ('end' / %{ErrEndFunc})
 	parlist		<-	namelist (',' ('...' / %{ErrParList}))? / '...'
 	tableconstructor<-	'{' fieldlist? ('}' / %{ErrCBraceTable})
 	fieldlist	<-	field (fieldsep field)* fieldsep?
-	field		<-	'[' (exp / %{ErrExprFKey}) (']' / %{ErrCBracketFKey}) '=' (exp / %{ErrExprField}) /
-						NAME ('=') exp / --  / %{ErrEqField}
+	field		<-	'[' (exp / %{ErrExprFKey}) (']' / %{ErrCBracketFKey}) ('=' / %{ErrEqField}) (exp / %{ErrExprField}) /
+						NAME '=' exp  /
 						exp 
 	fieldsep	<-	',' / ';'
 	operatorOr	<-	'or'
@@ -205,7 +203,7 @@ local grammar = pg.compile([==[
 					DECESC /
 					HEXESC/
 					UTFESC/
-					'\' %{ErrEscSeq}
+					'\' %{ErrEscSeq} 
 	DECESC		<-	'\' ( DIGIT DIGIT? / [0-2] DIGIT DIGIT) -- fragment
 	HEXESC		<-	'\' 'x' (HEXDIGIT HEXDIGIT  /  %{ErrHexEsc}) -- fragment
 	UTFESC		<-	'\' 'u' ('{' / %{ErrOBraceUEsc}) (HEXDIGIT+ /  %{ErrDigitUEsc}) ('}' /  %{ErrCBraceUEsc}) -- fragment
@@ -222,12 +220,13 @@ local grammar = pg.compile([==[
 			
 ]==],{ equals = equals,tryprint = tryprint})
 
-
+local lasterr = ""
 local function err(e,desc,line,col,sfail)
-	print(desc.."at "..line.."("..col..")")
+	--print(desc.." at line "..line.."(col "..col..")")
+	lasterr = desc
 end
 local function parse(input)
-	return pg.parse(input,grammar,_,err)
+	return pg.parse(input,grammar,_,err), lasterr
 end
 return {parse=parse}
 --[[
