@@ -48,16 +48,14 @@ local function sync (patt)
 end
 
 local SKIP = (Predef.space + Predef.nl)
-local SYNCS = (Predef.nl)^0
+local SYNC = (Predef.nl)
 
 local recovery = true
 local skipspaces = true
 
 
 
-local function setSync(patt)
-	SYNCS = patt^0
-end
+
 
 local function pattspaces (patt)
 	if skipspaces then
@@ -136,7 +134,7 @@ local function specialrules(t, builder)
 	-- initialize values
 	SKIP = (Predef.space + Predef.nl)
 	skipspaces = true
-	SYNCS = (Predef.nl)^0
+	SYNC = (Predef.nl)
 	recovery = true
 	-- find SPACE and SYNC rules
 	for i, v in ipairs(ast) do
@@ -147,18 +145,17 @@ local function specialrules(t, builder)
 			if v["rule"]["t"] == '' then
 				skipspaces = false
 			else
-				
 				skipspaces = true
 				SKIP = rule
 			end
 			builder[name] = rule
 		elseif name == "SYNC" then
 			rule = traverse(v["rule"], true)
-			if m.match(rule, '') then -- SYNC <- ''
+			if v["rule"]["t"] == '' then-- SYNC <- ''
 				recovery=false
 			else
 				recovery= true
-				setSync(rule)
+				SYNC = rule
 			end
 			builder[name] = rule
 		end
@@ -360,17 +357,20 @@ local function compile (input, defs)
 		return input 
 	end
 	if not mem[input] then
-		re.setlabels(tlabels)
-		re.compile(input,defs)
+		
 		-- build ast
 		ast = peg.pegToAST(input)
 		
 		ret = build(ast,defs)
 		if not ret then
 			-- find error using relabel module
-
+			re.setlabels(tlabels)
+			re.compile(input,defs)
 		end
+		if recovery then
+			
 		
+		end
 		mem[input] = ret -- store if the user forgets to compile it
 	end
 	return mem[input]
