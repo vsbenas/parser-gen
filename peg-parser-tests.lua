@@ -170,17 +170,22 @@ assert(equals(e,res))
 
 --p^num	exactly n repetitions
 e = f("name^3")
-res = {action="^", op1= {nt="name"}, op2 = "3"}
+res = {action="^", op1= {nt="name"}, op2 = {s="3"}}
 assert(equals(e,res))
 
 --p^+num	at least n repetitions
 e = f("name^+3")
-res = {action="^", op1= {nt="name"}, op2 = "+3"}
+res = {action="^", op1= {nt="name"}, op2 = {s="+3"}}
 assert(equals(e,res))
 
 --p^-num	at most n repetitions
 e = f("name^-3")
-res = {action="^", op1= {nt="name"}, op2 = "-3"}
+res = {action="^", op1= {nt="name"}, op2 = {s="-3"}}
+assert(equals(e,res))
+
+--p^LABEL error label
+e = f("name^err")
+res = {action = "^LABEL", op1= {nt="name"}, op2 = {s="err"}}
 assert(equals(e,res))
 
 --p -> 'string'	string capture

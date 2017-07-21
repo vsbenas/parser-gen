@@ -222,6 +222,12 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 		return op1^-1
 	elseif action == "^" then
 		return op1^op2
+	elseif action == "^LABEL" then
+		local lab = tlabels[op2]
+		if not lab then
+			error("Label '"..op2.."' unspecified using setlabels()")
+		end
+		return op1 + m.T(lab)
 	elseif action == "->" then
 		return op1 / op2
 	-- in captures we add SPACES^0
@@ -393,8 +399,8 @@ local function compile (input, defs)
 		return input 
 	end
 	if not mem[input] then
-		re.setlabels(tlabels)
-		re.compile(input,defs)
+		--re.setlabels(tlabels)
+		--re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
 		

@@ -19,7 +19,7 @@ function foldtable(action,t)
 				local act = value[1]
 				if act == "*" or act == "?" or act == "+" then
 					re = {action=act, op1=temp}
-				else
+				else	
 					re = {action=act, op1=temp, op2=value[2]}
 				end
 			elseif action == "or" and #value == 2 then -- recovery expression
@@ -57,7 +57,8 @@ local gram = [=[
 
 
 	suffixaction	<- 	((		{[+*?]}
-					/ {'^'} ( {[+-]? NUM} / label )
+					/ {'^'} {| {:s: [+-]? NUM:} |}
+					/ '^' ''->'^LABEL' label
 					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {| {:s: NUM :} |})
 					/ {'=>'} S funcname) S )
 
