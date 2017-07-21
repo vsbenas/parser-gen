@@ -37,8 +37,8 @@ end
 
 local gram = [=[
 
-	pattern         <- exp !.
-	exp             <- S (grammar / alternative)
+	pattern			<- exp !.
+	exp				<- S (grammar / alternative)
 
 	labels			<- {| '{' {: label :} (',' {: label :})* '}' |}
 
@@ -46,10 +46,10 @@ local gram = [=[
 	alternative		<- ( {:''->'or':} {| {: seq :} ('/' (('/' {| {: labels :} S {: seq :} |}) / (S {: seq :} ) ) )* |} ) -> foldtable
 
 
-	seq		        <- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
+	seq				<- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
 
 
-	prefix          <- {| {:action: '&' :} S {:op1: prefix :} |} 
+	prefix			<- {| {:action: '&' :} S {:op1: prefix :} |} 
 					/ {| {:action: '!' :} S {:op1: prefix :} |}
 					/ suffix
 
@@ -57,14 +57,14 @@ local gram = [=[
 
 
 	suffixaction	<- 	((		{[+*?]}
-					/ {'^'} {[+-]? NUM}
+					/ {'^'} ( {[+-]? NUM} / label )
 					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {| {:s: NUM :} |})
 					/ {'=>'} S funcname) S )
 
 
 
 
-	primary         <- '(' exp ')' / term / class / defined
+	primary			<- '(' exp ')' / term / class / defined
 					/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
 					/ {| ('{:' {:action:''->'gcap':} {:op2: defname:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
 					/ {| '=' {:action:''->'bref':} {:op1: defname:} |}
@@ -76,33 +76,33 @@ local gram = [=[
 					/ name S !ARROW
 					/ '<' name '>'          -- old-style non terminals
 
-	grammar         <- {| definition+ |}
-	definition      <- {| (token  S ARROW {:rule: exp :}) 
+	grammar			<- {| definition+ |}
+	definition		<- {| (token  S ARROW {:rule: exp :}) 
 					/ (nontoken  S ARROW {:rule: exp :}) |}
 
 	label			<- {| {:s: ERRORNAME :} |}
 
-	token 			<- {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
+	token			<- {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
-	class           <- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
+	class			<- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
 	classset		<- ( {:''->'or':} {| {: item :} (!']' {: item :})* |} ) -> foldtable
-	item            <- defined / range / {| {:t: . :} |}
-	range           <- {| {:action:''->'range':} {:op1: {| {:s: ({: . :} ('-') {: [^]] :} ) -> concat :} |} :} |}
+	item			<- defined / range / {| {:t: . :} |}
+	range			<- {| {:action:''->'range':} {:op1: {| {:s: ({: . :} ('-') {: [^]] :} ) -> concat :} |} :} |}
 
-	S               <- (%s / '--' [^%nl]*)*   -- spaces and comments
-	name            <- {| {:nt: TOKENNAME :} {:token:''->'1':} / {:nt: NAMESTRING :} |}
+	S				<- (%s / '--' [^%nl]*)*   -- spaces and comments
+	name			<- {| {:nt: TOKENNAME :} {:token:''->'1':} / {:nt: NAMESTRING :} |}
 	ERRORNAME		<- NAMESTRING
 	funcname		<- {| {:func: NAMESTRING :} |}
 
 	NAMESTRING		<- [A-Za-z][A-Za-z0-9_]*
 	TOKENNAME		<- [A-Z_]+ ![0-9a-z]
 	defname			<- {| {:s: NAMESTRING :} |}
-	ARROW           <- '<-'
-	NUM             <- [0-9]+
-	term          	<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
+	ARROW			<- '<-'
+	NUM				<- [0-9]+
+	term			<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 	string			<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
-	defined         <- {| {:action: '%':} {:op1: defname :} |}
+	defined			<- {| {:action: '%':} {:op1: defname :} |}
 ]=]
 
 local defs = {foldtable=foldtable, concat=concat}
