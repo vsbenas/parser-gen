@@ -97,65 +97,65 @@ local labels = {
 }
 pg.setlabels(labels)
 local grammar = pg.compile([==[
-	chunk		<-	block (!. / %{ErrExtra})
+	chunk		<-	block (!.)^ErrExtra
 	block		<-	stat* retstat?
 	stat		<-	';' /
 					functioncall /
 					'break' /
-					'goto' (NAME / %{ErrGoto}) /
-					'do' block ('end' / %{ErrEndDo})  /
-					'while' (exp / %{ErrExprWhile}) ('do' / %{ErrDoWhile}) block ('end' / %{ErrEndWhile}) /
-					'repeat' block ('until' / %{ErrUntilRep}) (exp / %{ErrExprRep}) /
-					'if' (exp / %{ErrExprIf} ) ('then' / %{ErrThenIf}) block ('elseif' (exp / %{ErrExprEIf}) ('then'/ %{ErrThenEIf})  block)* ('else' block)? ('end' / %{ErrEndIf}) /
-					'for' (forNum / forIn / %{ErrForRange}) ('do'/ %{ErrDoFor})  block ('end' / %{ErrEndFor}) /
-					'function' (funcname / %{ErrFuncName}) funcbody / 
-					'local' (localFunc / localAssign / %{ErrDefLocal}) /
-					varlist '=' (explist / %{ErrEListAssign}) /
+					'goto' NAME^ErrGoto /
+					'do' block 'end'^ErrEndDo  /
+					'while' exp^ErrExprWhile 'do'^ErrDoWhile block 'end'^ErrEndWhile /
+					'repeat' block 'until'^ErrUntilRep exp^ErrExprRep /
+					'if' exp^ErrExprIf 'then'^ErrThenIf block ('elseif' exp^ErrExprEIf 'then'^ErrThenEIf  block)* ('else' block)? 'end'^ErrEndIf /
+					'for' (forNum / forIn)^ErrForRange 'do'^ErrDoFor  block 'end'^ErrEndFor /
+					'function' funcname^ErrFuncName funcbody / 
+					'local' (localFunc / localAssign)^ErrDefLocal /
+					varlist '=' explist^ErrEListAssign /
 					label /
 					!blockEnd %{ErrInvalidStat}
 	blockEnd	<-	'return' / 'end' / 'elseif' / 'else' / 'until' / !.
 	retstat		<-	'return' explist? ';'?
-	forNum		<-  NAME '=' (exp / %{ErrExprFor1}) (',' / %{ErrCommaFor}) (exp/ %{ErrExprFor2}) (',' (exp / %{ErrExprFor3}))?
-	forIn		<- 	namelist ('in' / %{ErrInFor}) (explist/ %{ErrEListFor}) 
-	localFunc	<-	'function' (NAME / %{ErrNameLFunc}) funcbody 
-	localAssign	<-	namelist ('=' (explist / %{ErrEListLAssign}))?
-	label		<-	'::' (NAME / %{ErrLabel}) ('::' / %{ErrCloseLabel})
-	funcname	<-	NAME ('.' (NAME / %{ErrNameFunc1}))* (':' (NAME / %{ErrNameFunc2}))?
-	varlist		<-	var (',' (var / %{ErrVarList}))*
+	forNum		<-  NAME '=' exp^ErrExprFor1 ','^ErrCommaFor exp^ErrExprFor2 (',' exp^ErrExprFor3)?
+	forIn		<- 	namelist 'in'^ErrInFor explist^ErrEListFor 
+	localFunc	<-	'function' NAME^ErrNameLFunc funcbody 
+	localAssign	<-	namelist ('=' explist^ErrEListLAssign)?
+	label		<-	'::' NAME^ErrLabel '::'^ErrCloseLabel
+	funcname	<-	NAME ('.' NAME^ErrNameFunc1)* (':' NAME^ErrNameFunc2)?
+	varlist		<-	var (',' var^ErrVarList)*
 	namelist	<-	NAME (',' NAME)*
-	explist		<-	exp (',' (exp / %{ErrExprList}) )*
+	explist		<-	exp (',' exp^ErrExprList )*
 	exp		<-	expTokens expOps?
 	expTokens	<-	'nil' / 'false' / 'true' /
-					operatorUnary (exp  / %{ErrUnaryExpr}) /
+					operatorUnary exp^ErrUnaryExpr /
 					number /
 					string /
 					'...' /
 					functiondef /
 					prefixexp /
 					tableconstructor 
-	expOps		<-	operatorPower (exp  / %{ErrPowExpr}) / -- assoc= right
-					operatorMulDivMod (exp  / %{ErrMulExpr}) / -- left
-					operatorAddSub (exp  / %{ErrAddExpr}) /
-					operatorStrcat (exp  / %{ErrConcatExpr}) / -- right
-					operatorComparison (exp  / %{ErrRelExpr}) /
-					operatorBitwise (exp  / %{ErrBitwiseExpr}) /
-					operatorAnd (exp  / %{ErrAndExpr}) /
-					operatorOr (exp  / %{ErrOrExpr})
+	expOps		<-	operatorPower exp^ErrPowExpr / -- assoc= right
+					operatorMulDivMod exp^ErrMulExpr / -- left
+					operatorAddSub exp^ErrAddExpr /
+					operatorStrcat exp^ErrConcatExpr / -- right
+					operatorComparison exp^ErrRelExpr /
+					operatorBitwise exp^ErrBitwiseExpr /
+					operatorAnd exp^ErrAndExpr /
+					operatorOr exp^ErrOrExpr
 	prefixexp	<-	varOrExp nameAndArgs*
 	functioncall	<-	varOrExp nameAndArgs+
 	varOrExp	<-	var / brackexp
-	brackexp	<-  '(' (exp  / %{ErrExprParen}) ( ')' / %{ErrCParenExpr})
+	brackexp	<-  '(' exp^ErrExprParen ')'^ErrCParenExpr
 	var		<-	(NAME / brackexp varSuffix) varSuffix* 
-	varSuffix	<-	nameAndArgs* ('[' (exp  / %{ErrExprIndex}) (']' / %{ErrCBracketIndex})  / '.' (NAME / !'.' %{ErrNameIndex}))
-	nameAndArgs	<-	(':' (NAME / !':' %{ErrNameMeth}) (args / %{ErrMethArgs})) /
+	varSuffix	<-	nameAndArgs* ('[' exp^ErrExprIndex ']'^ErrCBracketIndex  / '.' !'.' NAME^ErrNameIndex)
+	nameAndArgs	<-	(':' !':' NAME^ErrNameMeth args^ErrMethArgs) /
 					args
-	args		<-	'(' explist? (')' / %{ErrCParenArgs}) / tableconstructor / string
+	args		<-	'(' explist? ')'^ErrCParenArgs / tableconstructor / string
 	functiondef	<-	'function' funcbody
-	funcbody	<-	('(' / %{ErrOParenPList}) parlist? (')' / %{ErrCParenPList}) block ('end' / %{ErrEndFunc})
-	parlist		<-	namelist (',' ('...' / %{ErrParList}))? / '...'
-	tableconstructor<-	'{' fieldlist? ('}' / %{ErrCBraceTable})
+	funcbody	<-	'('^ErrOParenPList parlist? ')'^ErrCParenPList block 'end'^ErrEndFunc
+	parlist		<-	namelist (',' '...'^ErrParList)? / '...'
+	tableconstructor<-	'{' fieldlist? '}'^ErrCBraceTable
 	fieldlist	<-	field (fieldsep field)* fieldsep?
-	field		<-	'[' (exp / %{ErrExprFKey}) (']' / %{ErrCBracketFKey}) ('=' / %{ErrEqField}) (exp / %{ErrExprField}) /
+	field		<-	'[' exp^ErrExprFKey ']'^ErrCBracketFKey '='^ErrEqField exp^ErrExprField /
 						NAME '=' exp  /
 						exp 
 	fieldsep	<-	',' / ';'
@@ -178,26 +178,26 @@ local grammar = pg.compile([==[
 					'then' / 'true' / 'until' / 'while'
 	NAME		<-	!RESERVED [a-zA-Z_] [a-zA-Z_0-9]*
 	
-	NORMALSTRING	<-	'"' ( ESC / [^"\] )* ('"' /  %{ErrQuote})
-	CHARSTRING	<-	"'" ( ESC / [^\'] )* ("'" /  %{ErrQuote})
+	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"'^ErrQuote
+	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"^ErrQuote
 	
-	LONGSTRING	<-	OPEN (!CLOSEEQ .)* (CLOSE  /  %{ErrCloseLStr})
+	LONGSTRING	<-	OPEN (!CLOSEEQ .)* CLOSE^ErrCloseLStr
 	OPEN 		<-	'[' {:openEq: EQUALS :} '[' %nl?
 	CLOSE 		<-	']' {:closeEq: EQUALS :} ']'
 	EQUALS 		<-	'='*
 	CLOSEEQ 	<-	CLOSE ((=openEq =closeEq) => equals)
 
 	INT		<-	DIGIT+
-	HEX		<-	'0' [xX] (HEXDIGIT+ / %{ErrDigitHex})
+	HEX		<-	'0' [xX] HEXDIGIT+^ErrDigitHex
 	FLOAT		<-	DIGIT+ '.' DIGIT* ExponentPart? /
-					'.' (DIGIT+ / !'.' %{ErrDigitDeci}) ExponentPart? /
+					'.' !'.' DIGIT+^ErrDigitDeci ExponentPart? /
 					DIGIT+ ExponentPart
 	HEX_FLOAT	<-	'0' [xX] HEXDIGIT+ '.' HEXDIGIT* HexExponentPart? /
 					'0' [xX] '.' HEXDIGIT+ HexExponentPart? /
-					'0' [xX] (HEXDIGIT+ / %{ErrDigitHex}) HexExponentPart
+					'0' [xX] HEXDIGIT+^ErrDigitHex HexExponentPart
 	
-	ExponentPart	<-	[eE] [+-]? (DIGIT+ / %{ErrDigitExpo}) -- fragment
-	HexExponentPart	<-	[pP] [+-]? (DIGIT+ / %{ErrDigitExpo}) -- fragment
+	ExponentPart	<-	[eE] [+-]? DIGIT+^ErrDigitExpo -- fragment
+	HexExponentPart	<-	[pP] [+-]? DIGIT+^ErrDigitExpo -- fragment
 	ESC		<-	'\' [abfnrtvz"'\] / -- fragment
 					'\' %nl /
 					DECESC /
@@ -205,8 +205,8 @@ local grammar = pg.compile([==[
 					UTFESC/
 					'\' %{ErrEscSeq} 
 	DECESC		<-	'\' ( DIGIT DIGIT? / [0-2] DIGIT DIGIT) -- fragment
-	HEXESC		<-	'\' 'x' (HEXDIGIT HEXDIGIT  /  %{ErrHexEsc}) -- fragment
-	UTFESC		<-	'\' 'u' ('{' / %{ErrOBraceUEsc}) (HEXDIGIT+ /  %{ErrDigitUEsc}) ('}' /  %{ErrCBraceUEsc}) -- fragment
+	HEXESC		<-	'\' 'x' (HEXDIGIT HEXDIGIT)^ErrHexEsc -- fragment
+	UTFESC		<-	'\' 'u' '{'^ErrOBraceUEsc HEXDIGIT+^ErrDigitUEsc '}'^ErrCBraceUEsc -- fragment
 	DIGIT		<-	[0-9] -- fragment
 	HEXDIGIT	<-	[0-9a-fA-F] -- fragment
 	COMMENT		<-	'--' LONGSTRING -- skip this
@@ -217,7 +217,7 @@ local grammar = pg.compile([==[
 					''
 	SHEBANG		<-	'#' '!' [^%nl]*
 	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 		
-	SYNC		<-  'b'
+	SYNC		<-  '' -- doesnt work
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
