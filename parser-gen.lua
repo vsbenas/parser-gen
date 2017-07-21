@@ -9,6 +9,8 @@ local tokenstack = Stack:Create()
 
 
 local Predef = { nl = m.P"\n", cr = m.P"\r", tab = m.P"\t" }
+
+
 local mem = {} -- for compiled grammars
 
 local function updatelocale()
@@ -41,11 +43,11 @@ updatelocale()
 
 local definitions = {}
 local tlabels = {}
+local tlabelnames = {} -- reverse table
 local tdescs = {}
--- lpeglabel related functions:
-local function sync (patt)
-	--return (-patt * l.P(1))^0 -- skip until we find pattern
-end
+local trecs = {} -- recovery for each error
+
+
 
 local SKIP = (Predef.space + Predef.nl)
 local SYNC = (Predef.nl)
@@ -54,7 +56,9 @@ local recovery = true
 local skipspaces = true
 
 
-
+local function sync (patt)
+	return (-patt * m.P(1))^0 -- skip until we find pattern
+end
 
 
 local function pattspaces (patt)
@@ -74,15 +78,8 @@ local function token (patt)
 	return patt
 end
 
-local function try (patt, err)
-	return patt + T(err)
-end
 
-local function throws (patt,err) -- if pattern is matched throw error
-	return patt * T(err)
-end
 
--- end
 
 -- functions used by the tool
 
@@ -186,11 +183,6 @@ local function buildgrammar (ast)
 		
 	end
 	return builder
-end
-local function equalcap (s, i, c)
-  if type(c) ~= "string" then return nil end
-  local e = #c + i
-  if s:sub(i, e - 1) == c then return e else return nil end
 end
 
 
@@ -352,6 +344,50 @@ function traverse (ast, tokenrule)
 
 end
 
+-- recovery grammar
+
+local subject, errors, errorfunc
+
+function record(label)
+	return (m.Cp() * m.Cc(label)) / recorderror
+end
+
+function recorderror(position,label)
+	-- call error function here
+	local line, col = re.calcline(subject, position)
+	local desc
+	desc = tdescs[label]
+	
+	if errorfunc then
+		errorfunc(desc,line,col,sfail,trecs[label])
+	end
+
+	local err = { line = line, col = col, label=tlabelnames[label], msg = desc }
+	table.insert(errors, err)
+
+end
+
+
+
+local function buildrecovery(grammar)
+
+	local synctoken = sync(SYNC)
+	local grec = grammar
+	
+	for k,v in pairs(tlabels) do
+		if trecs[v] then -- custom sync token
+			grec = m.Rec(grec,record(v) * sync(trecs[v]), v)
+		else -- use global sync token
+			grec = m.Rec(grec,record(v) * synctoken, v)
+		end
+	end
+	return grec
+	
+end
+
+-- end
+
+
 local function compile (input, defs)
 	if iscompiled(input) then 
 		return input 
@@ -362,56 +398,64 @@ local function compile (input, defs)
 		-- build ast
 		ast = peg.pegToAST(input)
 		
-		ret = build(ast,defs)
-		if not ret then
+		local gram = build(ast,defs)
+		if not gram then
 			-- find error using relabel module
 			
 		end
 		if recovery then
-			
-		
+			ret = buildrecovery(gram)
+		else
+			ret = gram
 		end
 		mem[input] = ret -- store if the user forgets to compile it
 	end
 	return mem[input]
 end
 
+
+
+
+
 -- t = {errName="Error description",...}
 local function setlabels (t)
 	local index = 1
 	tlabels = {}
 	tdescs = {}
+	trecs = {}
 	for key,value in pairs(t) do
 		if index >= 255 then
 			error("Error label limit reached(255)")
 		end
+		if type(value) == "table" then -- we have a recovery expression
+			trecs[index] = value[1]
+			tdescs[index] = value[2]
+		else
+			tdescs[index] = value
+		end
 		tlabels[key] = index
-		tdescs[index] = value
+		tlabelnames[index] = key -- reverse table
 		index = index + 1
 	end
 end
 
-local function parse (input, grammar, defs, errorfunction)
+local function parse (input, grammar, errorfunction)
 	sp = {}
 	if not iscompiled(grammar) then
-		cp = compile(grammar,defs)
+		cp = compile(grammar)
 		grammar = cp
 	end
+	-- set up recovery table
+	errorfunc = errorfunction
+	subject = input
+	errors = {}
+	-- end
 	local r, e, sfail = m.match(grammar,input)
 	if not r then
-		local line, col = re.calcline(input, #input - #sfail)
-		if errorfunction then
-			local desc
-			if e == 0 then
-				desc = "Syntax error"
-			else
-				desc = tdescs[e]
-			end
-			errorfunction(e,desc,line,col,sfail)
-		end
+		recorderror(#input - #sfail, e)
 	end
-
-	return r
+	if #errors == 0 then errors=nil end
+	return r, errors
 end
 
 local pg = {compile=compile, setlabels=setlabels, parse=parse}

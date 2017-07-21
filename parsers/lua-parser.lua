@@ -113,7 +113,7 @@ local grammar = pg.compile([==[
 					varlist '=' (explist / %{ErrEListAssign}) /
 					label /
 					!blockEnd %{ErrInvalidStat}
-	blockEnd	<- 'return' / 'end' / 'elseif' / 'else' / 'until' / !.
+	blockEnd	<-	'return' / 'end' / 'elseif' / 'else' / 'until' / !.
 	retstat		<-	'return' explist? ';'?
 	forNum		<-  NAME '=' (exp / %{ErrExprFor1}) (',' / %{ErrCommaFor}) (exp/ %{ErrExprFor2}) (',' (exp / %{ErrExprFor3}))?
 	forIn		<- 	namelist ('in' / %{ErrInFor}) (explist/ %{ErrEListFor}) 
@@ -216,17 +216,20 @@ local grammar = pg.compile([==[
 					[^[%nl] [^%nl]* /
 					''
 	SHEBANG		<-	'#' '!' [^%nl]*
-	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 				 
+	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 		
+	SYNC		<-  'b'
 			
 ]==],{ equals = equals,tryprint = tryprint})
-
-local lasterr = ""
-local function err(e,desc,line,col,sfail)
-	--print(desc.." at line "..line.."(col "..col..")")
-	lasterr = desc
+local errnr = 1
+local function err (desc, line, col, sfail, recexp)
+	print("Syntax error #"..errnr..": "..desc.." at line "..line.."(col "..col..")")
+	errnr = errnr+1
 end
-local function parse(input)
-	return pg.parse(input,grammar,_,err), lasterr
+local function parse (input)
+	errnr = 1
+	if #input < 100 then print(" Parsing '"..input.."':") end
+	local ast, errs = pg.parse(input,grammar,err)
+	return ast, errs
 end
 return {parse=parse}
 --[[
