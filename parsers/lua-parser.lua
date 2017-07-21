@@ -115,7 +115,7 @@ local grammar = pg.compile([==[
 					!blockEnd %{ErrInvalidStat}
 	blockEnd	<-	'return' / 'end' / 'elseif' / 'else' / 'until' / !.
 	retstat		<-	'return' explist? ';'?
-	forNum		<-  NAME '=' exp^ErrExprFor1 ','^ErrCommaFor exp^ErrExprFor2 (',' exp^ErrExprFor3)?
+	forNum		<-	NAME '=' exp^ErrExprFor1 ','^ErrCommaFor exp^ErrExprFor2 (',' exp^ErrExprFor3)?
 	forIn		<- 	namelist 'in'^ErrInFor explist^ErrEListFor 
 	localFunc	<-	'function' NAME^ErrNameLFunc funcbody 
 	localAssign	<-	namelist ('=' explist^ErrEListLAssign)?
@@ -144,7 +144,7 @@ local grammar = pg.compile([==[
 	prefixexp	<-	varOrExp nameAndArgs*
 	functioncall	<-	varOrExp nameAndArgs+
 	varOrExp	<-	var / brackexp
-	brackexp	<-  '(' exp^ErrExprParen ')'^ErrCParenExpr
+	brackexp	<-	'(' exp^ErrExprParen ')'^ErrCParenExpr
 	var		<-	(NAME / brackexp varSuffix) varSuffix* 
 	varSuffix	<-	nameAndArgs* ('[' exp^ErrExprIndex ']'^ErrCBracketIndex  / '.' !'.' NAME^ErrNameIndex)
 	nameAndArgs	<-	(':' !':' NAME^ErrNameMeth args^ErrMethArgs) /
