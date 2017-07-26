@@ -145,7 +145,7 @@ local grammar = pg.compile([==[
 	functioncall	<-	varOrExp nameAndArgs+
 	varOrExp	<-	var / brackexp
 	brackexp	<-	'(' exp^ErrExprParen ')'^ErrCParenExpr
-	var		<-	(NAME / brackexp varSuffix) varSuffix* 
+	var		<-	(NAME / brackexp varSuffix) varSuffix*
 	varSuffix	<-	nameAndArgs* ('[' exp^ErrExprIndex ']'^ErrCBracketIndex  / '.' !'.' NAME^ErrNameIndex)
 	nameAndArgs	<-	(':' !':' NAME^ErrNameMeth args^ErrMethArgs) /
 					args
@@ -217,7 +217,7 @@ local grammar = pg.compile([==[
 					''
 	SHEBANG		<-	'#' '!' [^%nl]*
 	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 		
-	SYNC		<-  '' -- doesnt work
+	SYNC		<-  %nl / %s
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
@@ -227,7 +227,6 @@ local function err (desc, line, col, sfail, recexp)
 end
 local function parse (input)
 	errnr = 1
-	if #input < 100 then print(" Parsing '"..input.."':") end
 	local ast, errs = pg.parse(input,grammar,err)
 	return ast, errs
 end

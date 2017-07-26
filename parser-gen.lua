@@ -57,7 +57,7 @@ local skipspaces = true
 
 
 local function sync (patt)
-	return (-patt * m.P(1))^0 -- skip until we find pattern
+	return (m.P(1))^-1 * (-patt * m.P(1))^0 -- consume upto one symbol, skip until we find pattern
 end
 
 
