@@ -57,7 +57,7 @@ local skipspaces = true
 
 
 local function sync (patt)
-	return (m.P(1))^-1 * (-patt * m.P(1))^0 -- consume upto one symbol, skip until we find pattern
+	return (-patt + m.P(1)) * (-patt * m.P(1))^0 -- consume upto one symbol, skip until we find pattern
 end
 
 
@@ -434,8 +434,9 @@ local function setlabels (t)
 			error("Error label limit reached(255)")
 		end
 		if type(value) == "table" then -- we have a recovery expression
-			trecs[index] = value[1]
-			tdescs[index] = value[2]
+			tdescs[index] = value[1]
+
+			trecs[index] = traverse(peg.pegToAST(value[2]), true)-- PEG to LPEG
 		else
 			tdescs[index] = value
 		end
