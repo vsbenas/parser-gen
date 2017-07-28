@@ -94,6 +94,7 @@ local labels = {
 	ErrCBraceUEsc="expected '}' after the code point",
 	ErrEscSeq="invalid escape sequence",
 	ErrCloseLStr="unclosed long string",
+	ErrEqAssign="expected '=' after variable list in assign statement"
 }
 pg.setlabels(labels)
 local grammar = pg.compile([==[
@@ -110,7 +111,7 @@ local grammar = pg.compile([==[
 					'for' (forNum / forIn)^ErrForRange 'do'^ErrDoFor  block 'end'^ErrEndFor /
 					'function' funcname^ErrFuncName funcbody / 
 					'local' (localFunc / localAssign)^ErrDefLocal /
-					varlist '=' explist^ErrEListAssign /
+					varlist '='^ErrEqAssign explist^ErrEListAssign /
 					label /
 					!blockEnd %{ErrInvalidStat}
 	blockEnd	<-	'return' / 'end' / 'elseif' / 'else' / 'until' / !.
