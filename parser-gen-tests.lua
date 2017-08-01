@@ -2,36 +2,10 @@ local pg = require "parser-gen"
 local peg = require "peg-parser"
 local re = require "relabel"
 
-function equals(o1, o2, ignore_mt)
-    if o1 == o2 then return true end
-    local o1Type = type(o1)
-    local o2Type = type(o2)
-    if o1Type ~= o2Type then return false end
-    if o1Type ~= 'table' then return false end
+local eq = require "equals"
 
-    if not ignore_mt then
-        local mt1 = getmetatable(o1)
-        if mt1 and mt1.__eq then
-            --compare using built in method
-            return o1 == o2
-        end
-    end
+local equals = eq.equals
 
-    local keySet = {}
-
-    for key1, value1 in pairs(o1) do
-        local value2 = o2[key1]
-        if value2 == nil or equals(value1, value2, ignore_mt) == false then
-            return false
-        end
-        keySet[key1] = true
-    end
-
-    for key2, _ in pairs(o2) do
-        if not keySet[key2] then return false end
-    end
-    return true
-end
 
 local pr = peg.print_r
 
@@ -121,13 +95,14 @@ assert(equals(res,{"a","a","a"})) -- fails
 -- TESTING ERROR LABELS
 local labs = {errName = "Error number 1",errName2 = "Error number 2"}
 pg.setlabels(labs)
-rule = pg.compile [[ rule <- 'a'* %{errName} ]]
+rule = pg.compile [[ rule <- 'a' / %{errName}
+					SYNC <- '' ]]
 local errorcalled = false
-local function err(label, desc, line, col)
+local function err(desc, line, col, sfail, recexp)
 	errorcalled = true
 	assert(desc == "Error number 1")
 end
-res = pg.parse("aaa",rule,_,err)
+res = pg.parse("b",rule,err)
 assert(errorcalled)
 
 -- TESTING ERROR RECOVERY

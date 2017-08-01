@@ -37,7 +37,6 @@ for k,v in ipairs(filenames) do
 	local f = assert(io.open(filename, "r"))
 	local t = f:read("*all")
 
-
 	local res, err = lua.parse(t)
 	local s = "OK"
 	if not res then s = "FAIL" end -- only check if succesful since grammar ensures whole file is read
@@ -323,7 +322,8 @@ assert(err[1]["msg"] == ErrGoto)
 
 local ErrVarList="expected a variable name after ','"
 
-s = [[ abc,  = 3]]
+s = [[ abc,  
+		= 3]]
 print("Parsing '"..s.."'")
 res, err = lua.parse(s)
 
@@ -571,6 +571,8 @@ assert(err[1]["msg"] == ErrCloseLStr)
 print("\n\n All error labels generated successfully")
 
 print("\n\n [[ TESTING AST GENERATION ]] ")
+
+
 
 -- TODO: AST
 
