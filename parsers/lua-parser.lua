@@ -29,7 +29,7 @@ local labels = {
 	ErrExprFor1="expected a starting expression for the numeric range",
 	ErrCommaFor="expected ',' to split the start and end of the range",
 	ErrExprFor2="expected an ending expression for the numeric range",
-	ErrExprFor3="expected a step expression for the numeric range after ','",
+	ErrExprFor3={"expected a step expression for the numeric range after ','",[[ (!'do' !%nl .)* ]]},
 	ErrInFor="expected '=' or 'in' after the variable(s)",
 	ErrEListFor="expected one or more expressions after 'in'",
 	ErrDoFor="expected 'do' after the range of the for loop",
@@ -51,7 +51,7 @@ local labels = {
 	ErrCloseLabel="expected '::' after the label",
 	ErrGoto="expected a label after 'goto'",
 
-	ErrVarList="expected a variable name after ','",
+	ErrVarList={"expected a variable name after ','",[[ (!'=' !%nl .)* ]]},
 	ErrExprList="expected an expression after ','",
 
 	ErrOrExpr="expected an expression after 'or'",
@@ -80,7 +80,7 @@ local labels = {
 	ErrCBraceTable="expected '}' to close the table constructor",
 	ErrEqField="expected '=' after the table key",
 	ErrExprField="expected an expression after '='",
-	ErrExprFKey="expected an expression after '[' for the table key",
+	ErrExprFKey={"expected an expression after '[' for the table key",[[ (!']' !%nl .)* ]] },
 	ErrCBracketFKey="expected ']' to close the table key",
 
 	ErrDigitHex="expected one or more hexadecimal digits after '0x'",
@@ -88,11 +88,11 @@ local labels = {
 	ErrDigitExpo="expected one or more digits for the exponent",
 
 	ErrQuote="unclosed string",
-	ErrHexEsc="expected exactly two hexadecimal digits after '\\x'",
+	ErrHexEsc={"expected exactly two hexadecimal digits after '\\x'",[[ (!('"' / "'" / %nl) .)* ]]},
 	ErrOBraceUEsc="expected '{' after '\\u'",
-	ErrDigitUEsc="expected one or more hexadecimal digits for the UTF-8 code point",
-	ErrCBraceUEsc="expected '}' after the code point",
-	ErrEscSeq="invalid escape sequence",
+	ErrDigitUEsc={"expected one or more hexadecimal digits for the UTF-8 code point",[[ (!'}' !%nl .)* ]]},
+	ErrCBraceUEsc={"expected '}' after the code point",[[ (!('"' / "'") .)* ]]},
+	ErrEscSeq={"invalid escape sequence",[[ (!('"' / "'" / %nl) .)* ]]},
 	ErrCloseLStr="unclosed long string",
 	ErrEqAssign="expected '=' after variable list in assign statement"
 }
@@ -217,8 +217,9 @@ local grammar = pg.compile([==[
 					[^[%nl] [^%nl]* /
 					''
 	SHEBANG		<-	'#' '!' [^%nl]*
-	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 		
-	SYNC		<-  %nl / %s
+	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 
+	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
+	SYNC		<-	(!HELPER .)* / (!SKIP .)* (SKIP)* -- either sync to reserved keyword or consume spaces until next token
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
@@ -228,6 +229,7 @@ local function err (desc, line, col, sfail, recexp)
 end
 local function parse (input)
 	errnr = 1
+	
 	local ast, errs = pg.parse(input,grammar,err)
 	return ast, errs
 end
