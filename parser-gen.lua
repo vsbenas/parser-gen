@@ -48,16 +48,17 @@ local tdescs = {}
 local trecs = {} -- recovery for each error
 
 
-
+-- TODO: store these variables for each grammar
 local SKIP = (Predef.space + Predef.nl)
 local SYNC = (Predef.nl)
+
 
 local recovery = true
 local skipspaces = true
 
 
 local function sync (patt)
-	return (-patt + m.P(1)) * (-patt * m.P(1))^0 -- consume upto one symbol, skip until we find pattern
+	return patt --(-patt * m.P(1))^0 * patt^0 -- skip until we find the pattern and consume it(if we do)
 end
 
 
@@ -159,6 +160,21 @@ local function specialrules(t, builder)
 	end
 end
 
+local function buildrecovery(grammar)
+
+	local synctoken = sync(SYNC)
+	local grec = grammar
+	
+	for k,v in pairs(tlabels) do
+		if trecs[v] then -- custom sync token
+			grec = m.Rec(grec,record(v) * trecs[v], v)
+		else -- use global sync token
+			grec = m.Rec(grec,record(v) * synctoken, v)
+		end
+	end
+	return grec
+	
+end
 local function buildgrammar (ast)
 	local builder = {}
 	specialrules(ast, builder)
@@ -173,10 +189,13 @@ local function buildgrammar (ast)
 					builder[name] = SKIP^0 * traverse(rule, istokenrule) -- skip spaces at the beginning of the input
 				else
 					builder[name] = traverse(rule, istokenrule)
-				end
+				end	
+			end
+			if recovery then
+				builder[name] = buildrecovery(builder[name]) -- build recovery on top of initial rule
 			end
 		else
-			if not builder[name] then -- dont traverse rules for SKIP and SPACES twice
+			if not builder[name] then -- dont traverse rules for SKIP and SYNC twice
 				builder[name] = traverse(rule, istokenrule)
 			end
 		end
@@ -362,8 +381,11 @@ function recorderror(position,label)
 	-- call error function here
 	local line, col = re.calcline(subject, position)
 	local desc
-	desc = tdescs[label]
-	
+	if label == 0 then
+		desc = "Syntax error"
+	else
+		desc = tdescs[label]
+	end
 	if errorfunc then
 		errorfunc(desc,line,col,sfail,trecs[label])
 	end
@@ -375,21 +397,6 @@ end
 
 
 
-local function buildrecovery(grammar)
-
-	local synctoken = sync(SYNC)
-	local grec = grammar
-	
-	for k,v in pairs(tlabels) do
-		if trecs[v] then -- custom sync token
-			grec = m.Rec(grec,record(v) * sync(trecs[v]), v)
-		else -- use global sync token
-			grec = m.Rec(grec,record(v) * synctoken, v)
-		end
-	end
-	return grec
-	
-end
 
 -- end
 
@@ -409,12 +416,7 @@ local function compile (input, defs)
 			-- find error using relabel module
 			
 		end
-		if recovery then
-			ret = buildrecovery(gram)
-		else
-			ret = gram
-		end
-		mem[input] = ret -- store if the user forgets to compile it
+		mem[input] = gram-- store if the user forgets to compile it
 	end
 	return mem[input]
 end
@@ -449,6 +451,7 @@ end
 local function parse (input, grammar, errorfunction)
 	sp = {}
 	if not iscompiled(grammar) then
+
 		cp = compile(grammar)
 		grammar = cp
 	end
