@@ -172,23 +172,28 @@ local grammar = pg.compile([==[
 	number		<-	FLOAT / HEX_FLOAT / HEX / INT
 	string		<-	NORMALSTRING / CHARSTRING / LONGSTRING    
 	-- lexer
+	fragment
 	RESERVED	<-	KEYWORDS ![a-zA-Z_0-9]
+	fragment
 	KEYWORDS	<-	'and' / 'break' / 'do' / 'elseif' / 'else' / 'end' /
 					'false' / 'for' / 'function' / 'goto' / 'if' / 'in' /
 					'local' / 'nil' / 'not' / 'or' / 'repeat' / 'return' /
 					'then' / 'true' / 'until' / 'while'
 	NAME		<-	!RESERVED [a-zA-Z_] [a-zA-Z_0-9]*
-	
+	fragment
 	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"'^ErrQuote
+	fragment
 	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"^ErrQuote
-	
-	LONGSTRINGex	<-	OPEN (!CLOSEEQ .)* CLOSE^ErrCloseLStr -- unused
-	LONGSTRING	<- 	'[' {:openEq: '='* :} '[' %nl? (!(']' {:closeEq: '='* :} ']' ((=openEq =closeEq) => equals)) .)* (']' '='* ']')^ErrCloseLStr
-	
-	
-	OPEN 		<-	'[' {:openEq: EQUALS :} '[' %nl?
+	fragment
+	LONGSTRING	<-	(OPEN {(!CLOSEEQ .)*} CLOSE^ErrCloseLStr) -> 1 -- capture only the string
+
+	fragment 
+	OPEN 		<-	'[' {:openEq: EQUALS :}  '[' %nl?
+	fragment 
 	CLOSE 		<-	']' {:closeEq: EQUALS :} ']'
+	fragment 
 	EQUALS 		<-	'='*
+	fragment 
 	CLOSEEQ 	<-	CLOSE ((=openEq =closeEq) => equals)
 
 	INT		<-	DIGIT+
@@ -199,30 +204,47 @@ local grammar = pg.compile([==[
 	HEX_FLOAT	<-	'0' [xX] HEXDIGIT+ '.' HEXDIGIT* HexExponentPart? /
 					'0' [xX] '.' HEXDIGIT+ HexExponentPart? /
 					'0' [xX] HEXDIGIT+^ErrDigitHex HexExponentPart
-	
-	ExponentPart	<-	[eE] [+-]? DIGIT+^ErrDigitExpo -- fragment
-	HexExponentPart	<-	[pP] [+-]? DIGIT+^ErrDigitExpo -- fragment
-	ESC		<-	'\' [abfnrtvz"'\] / -- fragment
+	fragment
+	ExponentPart	<-	[eE] [+-]? DIGIT+^ErrDigitExpo
+	fragment
+	HexExponentPart	<-	[pP] [+-]? DIGIT+^ErrDigitExpo 
+	fragment
+	ESC		<-	'\' [abfnrtvz"'\] /
 					'\' %nl /
 					DECESC /
 					HEXESC/
 					UTFESC/
 					'\' %{ErrEscSeq} 
-	DECESC		<-	'\' ( DIGIT DIGIT? / [0-2] DIGIT DIGIT) -- fragment
-	HEXESC		<-	'\' 'x' (HEXDIGIT HEXDIGIT)^ErrHexEsc -- fragment
-	UTFESC		<-	'\' 'u' '{'^ErrOBraceUEsc HEXDIGIT+^ErrDigitUEsc '}'^ErrCBraceUEsc -- fragment
-	DIGIT		<-	[0-9] -- fragment
-	HEXDIGIT	<-	[0-9a-fA-F] -- fragment
-	COMMENT		<-	'--' LONGSTRING -- skip this
+	fragment
+	DECESC		<-	'\' ( DIGIT DIGIT? / [0-2] DIGIT DIGIT)
+	fragment
+	HEXESC		<-	'\' 'x' (HEXDIGIT HEXDIGIT)^ErrHexEsc
+	fragment
+	UTFESC		<-	'\' 'u' '{'^ErrOBraceUEsc HEXDIGIT+^ErrDigitUEsc '}'^ErrCBraceUEsc
+	fragment
+	DIGIT		<-	[0-9]
+	fragment
+	HEXDIGIT	<-	[0-9a-fA-F]
+	
+	
+	fragment
+	COMMENT		<-	'--' LONGSTRING -> 0 -- skip this
+	fragment
 	LINE_COMMENT	<-	'--' COM_TYPES ( %nl / !.)
+	fragment
 	COM_TYPES	<-	'[' '='* [^[=%nl] [^%nl]* /
 					'[' '='* /
 					[^[%nl] [^%nl]* /
 					''
+	fragment
 	SHEBANG		<-	'#' '!' [^%nl]*
+	
+	
 	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 
+	fragment
 	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
 	SYNC		<-	(!HELPER .)* / (!SKIP .)* (SKIP)* -- either sync to reserved keyword or consume spaces until next token
+	AST			<- 	''	
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
