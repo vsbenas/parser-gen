@@ -74,14 +74,14 @@ local gram = [=[
 					/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
 					/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
 					/ {| '.' {:action:''->'anychar':} |}
-					/ !fragment name S !ARROW
+					/ !frag name S !ARROW
 					/ '<' name '>'          -- old-style non terminals
 
 	grammar			<- {| definition+ |}
-	definition		<- {| fragment? (token / nontoken) S ARROW {:rule: exp :} |}
+	definition		<- {| frag? (token / nontoken) S ARROW {:rule: exp :} |}
 
 	label			<- {| {:s: ERRORNAME :} |}
-	fragment		<- {:fragment: 'fragment'->'1' :} ![0-9_a-z] S
+	frag			<- {:fragment: 'fragment'->'1' :} ![0-9_a-z] S !ARROW
 	
 	token			<- {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
@@ -104,6 +104,7 @@ local gram = [=[
 	term			<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 	string			<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined			<- {| {:action: '%':} {:op1: defname :} |}
+	AST				<- '' -- for self description test
 ]=]
 
 local defs = {foldtable=foldtable, concat=concat}
