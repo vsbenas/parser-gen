@@ -174,7 +174,7 @@ assert(equals(e,res))
 
 e = f('name -> 3')
 
-res = {action="->", op1= {nt="name"}, op2 = {s="3"}}
+res = {action="->", op1= {nt="name"}, op2 = {sn="3"}}
 
 assert(equals(e,res))
 
