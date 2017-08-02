@@ -81,7 +81,7 @@ local labels = {
 	ErrEqField="expected '=' after the table key",
 	ErrExprField="expected an expression after '='",
 	ErrExprFKey={"expected an expression after '[' for the table key",[[ (!']' !%nl .)* ]] },
-	ErrCBracketFKey="expected ']' to close the table key",
+	ErrCBracketFKey={"expected ']' to close the table key",[[ (!'=' !%nl .)* ]]},
 
 	ErrDigitHex="expected one or more hexadecimal digits after '0x'",
 	ErrDigitDeci="expected one or more digits after the decimal point",
