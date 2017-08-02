@@ -243,7 +243,7 @@ local grammar = pg.compile([==[
 	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 
 	fragment
 	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
-	SYNC		<-	(!HELPER .)* / (!SKIP .)* (SKIP)* -- either sync to reserved keyword or consume spaces until next token
+	SYNC		<-	(!HELPER !SKIP .)* (SKIP)* -- either sync to reserved keyword or skip characters and consume them
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
