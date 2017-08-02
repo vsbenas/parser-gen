@@ -613,18 +613,6 @@ rez = {
 							{
 								{
 									'123',
-									{
-										'1',
-										rule='DIGIT',
-									},
-									{
-										'2',
-										rule='DIGIT',
-									},
-									{
-										'3',
-										rule='DIGIT',
-									},
 									rule='INT',
 								},
 								rule='number',
@@ -657,18 +645,6 @@ rez = {
 								{
 									{
 										'123',
-										{
-											'1',
-											rule='DIGIT',
-										},
-										{
-											'2',
-											rule='DIGIT',
-										},
-										{
-											'3',
-											rule='DIGIT',
-										},
 										rule='INT',
 									},
 									rule='number',
@@ -699,7 +675,12 @@ assert(equals(res,rez))
 
 s = [[ 
 local a = [=[ long string ]=]
+
+-- aaa
 return a
+--[==[ hi 
+
+]==]
 ]]
 rez = {
 {
@@ -718,10 +699,7 @@ rez = {
 				{
 					{
 						{
-							{
-								'[=[ long string ]=]',
-								rule='LONGSTRING',
-							},
+							' long string ',
 							rule='string',
 						},
 						rule='expTokens',
@@ -766,7 +744,7 @@ rule='chunk',
 }
 print("Parsing '"..s.."'")
 res, err = lua.parse(s)
-
+peg.print_t(res)
 assert(equals(res,rez))
 
 print("\n\n All AST's generated successfully")
