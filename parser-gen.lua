@@ -55,7 +55,7 @@ local SYNC = (Predef.nl)
 
 local recovery = true
 local skipspaces = true
-
+local buildast = true
 
 local function sync (patt)
 	return patt --(-patt * m.P(1))^0 * patt^0 -- skip until we find the pattern and consume it(if we do)
@@ -199,10 +199,17 @@ local function buildgrammar (ast)
 				builder[name] = traverse(rule, istokenrule)
 			end
 		end
-		
+		if buildast then
+			if istokenrule then
+				builder[name] = m.C(builder[name])
+			end
+			builder[name] = m.Ct(m.Cg(m.Cc(name),"rule") * builder[name])
+		end
 	end
 	return builder
 end
+
+
 
 
 local function addspaces (caps)
@@ -265,6 +272,9 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 	elseif action == "scap" then
 		return addspaces(m.C(op1)) 
 	elseif action == "anychar" then
+		if buildast and not tokenrule then
+			return m.C(m.P(1))
+		end
 		return m.P(1)
 	elseif action == "label" then
 		local lab = tlabels[op1]
@@ -280,11 +290,14 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 	elseif action == "invert" then
 		return m.P(1) - op1
 	elseif action == "range" then
+		local res = m.R(op1)
 		if not tokenrule then
-			return token(m.R(op1))
-		else
-			return m.R(op1)
+			if buildast then
+				res = m.C(res)
+			end
+			res = token(res)
 		end
+		return res
 	else
 		error("Unsupported action '"..action.."'")
 	end
@@ -293,11 +306,16 @@ end
 local function applyfinal(action, term, tokenterm, tokenrule)
 
 	if action == "t" then
-		if skipspaces and (not tokenrule) then
-			return token(m.P(term))
-		else
-			return m.P(term)
+		local res = m.P(term)
+		if not tokenrule then
+			if buildast then
+				res = m.C(res)
+			end
+			if skipspaces then
+				res = token(res)
+			end
 		end
+		return res
 	elseif action == "nt" then
 		if skipspaces and tokenterm and (not tokenrule) then
 			return token(m.V(term))
