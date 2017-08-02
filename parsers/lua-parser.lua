@@ -9,7 +9,7 @@ function tryprint(s,i,a) print(a) return true end
 -- from  https://github.com/andremm/lua-parser/blob/master/lua-parser/parser.lua
 local labels = {
 	ErrExtra="unexpected character(s), expected EOF",
-	ErrInvalidStat="unexpected token, invalid start of statement",
+	ErrInvalidStat={"unexpected token, invalid start of statement",[[ (!%nl .)* ]]},
 
 	ErrEndIf="expected 'end' to close the if statement",
 	ErrExprIf="expected a condition after 'if'",
@@ -182,7 +182,10 @@ local grammar = pg.compile([==[
 	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"'^ErrQuote
 	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"^ErrQuote
 	
-	LONGSTRING	<-	OPEN (!CLOSEEQ .)* CLOSE^ErrCloseLStr
+	LONGSTRINGex	<-	OPEN (!CLOSEEQ .)* CLOSE^ErrCloseLStr -- unused
+	LONGSTRING	<- 	'[' {:openEq: '='* :} '[' %nl? (!(']' {:closeEq: '='* :} ']' ((=openEq =closeEq) => equals)) .)* (']' {:closeEq: '='* :} ']')^ErrCloseLStr
+	
+	
 	OPEN 		<-	'[' {:openEq: EQUALS :} '[' %nl?
 	CLOSE 		<-	']' {:closeEq: EQUALS :} ']'
 	EQUALS 		<-	'='*
