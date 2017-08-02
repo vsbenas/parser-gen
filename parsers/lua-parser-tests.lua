@@ -1,5 +1,8 @@
 local lua = require "lua-parser"
 local peg = require "peg-parser"
+
+local eq = require "equals"
+local equals = eq.equals
 print("\n\n [[ PARSING LUA TEST FILES ]] \n\n")
 local filenames = {
 'all.lua',
@@ -35,6 +38,7 @@ local errs = 0
 for k,v in ipairs(filenames) do
 	local filename = "lua-5.3.4-tests/"..v
 	local f = assert(io.open(filename, "r"))
+
 	local t = f:read("*all")
 
 	local res, err = lua.parse(t)
@@ -43,7 +47,7 @@ for k,v in ipairs(filenames) do
 	print("Testing file '"..v.."': ["..s.."]")
 	if not res then
 		errs = errs + 1
-		print("Error: "..err)
+		print("Error: "..err[1]["msg"])
 	end
 	f:close()
 end
@@ -570,11 +574,127 @@ assert(err[1]["msg"] == ErrCloseLStr)
 
 print("\n\n All error labels generated successfully")
 
-print("\n\n [[ TESTING AST GENERATION ]] ")
-
-
+print("\n\n [[ TESTING AST GENERATION ]]\n\n ")
 
 -- TODO: AST
+
+s = [[ 
+if abc > 123 then 
+	abc=123 
+end]]
+rez = {
+	{
+		{
+			'if',
+			{
+				{
+					{
+						{
+							{
+								{
+									'abc',
+									rule='NAME',
+								},
+								rule='var',
+							},
+							rule='varOrExp',
+						},
+						rule='prefixexp',
+					},
+					rule='expTokens',
+				},
+				{
+					{
+						'>',
+						rule='operatorComparison',
+					},
+					{
+						{
+							{
+								{
+									'123',
+									{
+										'1',
+										rule='DIGIT',
+									},
+									{
+										'2',
+										rule='DIGIT',
+									},
+									{
+										'3',
+										rule='DIGIT',
+									},
+									rule='INT',
+								},
+								rule='number',
+							},
+							rule='expTokens',
+						},
+						rule='exp',
+					},
+					rule='expOps',
+				},
+				rule='exp',
+			},
+			'then',
+			{
+				{
+					{
+						{
+							{
+								'abc',
+								rule='NAME',
+							},
+							rule='var',
+						},
+						rule='varlist',
+					},
+					'=',
+					{
+						{
+							{
+								{
+									{
+										'123',
+										{
+											'1',
+											rule='DIGIT',
+										},
+										{
+											'2',
+											rule='DIGIT',
+										},
+										{
+											'3',
+											rule='DIGIT',
+										},
+										rule='INT',
+									},
+									rule='number',
+								},
+								rule='expTokens',
+							},
+							rule='exp',
+						},
+						rule='explist',
+					},
+					rule='stat',
+				},
+				rule='block',
+			},
+			'end',
+			rule='stat',
+		},
+		rule='block',
+	},
+	rule='chunk',
+}
+
+
+print("Parsing '"..s.."'")
+res, err = lua.parse(s)
+assert(equals(res,rez))
 
 print("\n\n All AST's generated successfully")
 
