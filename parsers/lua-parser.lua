@@ -244,7 +244,6 @@ local grammar = pg.compile([==[
 	fragment
 	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
 	SYNC		<-	(!HELPER .)* / (!SKIP .)* (SKIP)* -- either sync to reserved keyword or consume spaces until next token
-	AST			<- 	''	
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1

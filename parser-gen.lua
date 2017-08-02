@@ -136,6 +136,7 @@ local function specialrules(t, builder)
 	skipspaces = true
 	SYNC = (Predef.nl)
 	recovery = true
+	buildast = true
 	-- find SPACE and SYNC rules
 	for i, v in ipairs(ast) do
 		local name = v["rulename"]
@@ -158,6 +159,10 @@ local function specialrules(t, builder)
 				SYNC = rule
 			end
 			builder[name] = rule
+		elseif name == "AST" then
+			if v["rule"]["t"] == '' then-- AST <- ''
+				buildast=false
+			end
 		end
 	end
 end
@@ -185,7 +190,7 @@ local function buildgrammar (ast)
 		local isfragment = v["fragment"] == "1"
 
 		local name = v["rulename"]
-		local isspecial = name == "SKIP" or name == "SYNC"
+		local isspecial = name == "SKIP" or name == "SYNC" or name == "AST"
 		local rule = v["rule"]
 		if i == 1 then
 			table.insert(builder, name) -- lpeg syntax
