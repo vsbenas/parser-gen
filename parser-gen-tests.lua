@@ -80,13 +80,17 @@ assert(res)
 
 -- TESTING CAPTURES
 
-r = pg.compile [[ rule <- {| {:'a' 'b':}* |} ]]
+r = pg.compile [[ rule <- {| {:'a' 'b':}* |} 
+				AST	<- ''
+				]]
 res = pg.parse("ababab", r)
 
 assert(equals(res,{"ab","ab","ab"}))
 -- space in capture
 
-rule = pg.compile [[ rule <- {| {: 'a' :}* |} ]]
+rule = pg.compile [[ rule <- {| {: 'a' :}* |} 
+					AST	<- ''
+]]
 str = " a a a "
 res = pg.parse(str,rule)
 
@@ -96,7 +100,8 @@ assert(equals(res,{"a","a","a"})) -- fails
 local labs = {errName = "Error number 1",errName2 = "Error number 2"}
 pg.setlabels(labs)
 rule = pg.compile [[ rule <- 'a' / %{errName}
-					SYNC <- '' ]]
+					SYNC <- '' 
+					]]
 local errorcalled = false
 local function err(desc, line, col, sfail, recexp)
 	errorcalled = true
@@ -126,6 +131,7 @@ assert(res1 and res2)
 
 
 -- SELF-DESCRIPTION
+
 gram = pg.compile(peg.gram, peg.defs)
 res1 = pg.parse(peg.gram,gram)
 assert(res1) -- parse succesful
