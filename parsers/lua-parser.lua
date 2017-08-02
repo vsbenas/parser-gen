@@ -183,7 +183,7 @@ local grammar = pg.compile([==[
 	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"^ErrQuote
 	
 	LONGSTRINGex	<-	OPEN (!CLOSEEQ .)* CLOSE^ErrCloseLStr -- unused
-	LONGSTRING	<- 	'[' {:openEq: '='* :} '[' %nl? (!(']' {:closeEq: '='* :} ']' ((=openEq =closeEq) => equals)) .)* (']' {:closeEq: '='* :} ']')^ErrCloseLStr
+	LONGSTRING	<- 	'[' {:openEq: '='* :} '[' %nl? (!(']' {:closeEq: '='* :} ']' ((=openEq =closeEq) => equals)) .)* (']' '='* ']')^ErrCloseLStr
 	
 	
 	OPEN 		<-	'[' {:openEq: EQUALS :} '[' %nl?

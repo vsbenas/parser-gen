@@ -694,6 +694,7 @@ rez = {
 
 print("Parsing '"..s.."'")
 res, err = lua.parse(s)
+peg.print_t(res)
 assert(equals(res,rez))
 
 s = [[ 
@@ -765,7 +766,7 @@ rule='chunk',
 }
 print("Parsing '"..s.."'")
 res, err = lua.parse(s)
-peg.print_t(res)
+
 assert(equals(res,rez))
 
 print("\n\n All AST's generated successfully")
