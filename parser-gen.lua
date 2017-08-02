@@ -241,7 +241,7 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 				end
 				labels[i] = lab
 			end
-			return m.Rec(op1,op2,unpack(labels))
+			return m.Rec(op1,op2,table.unpack(labels))
 		end
 		return op1 + op2
 	elseif action == "and" then
