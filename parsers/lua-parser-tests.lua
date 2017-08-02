@@ -696,6 +696,78 @@ print("Parsing '"..s.."'")
 res, err = lua.parse(s)
 assert(equals(res,rez))
 
+s = [[ 
+local a = [=[ long string ]=]
+return a
+]]
+rez = {
+{
+	{
+		'local',
+		{
+			{
+				{
+					'a',
+					rule='NAME',
+				},
+				rule='namelist',
+			},
+			'=',
+			{
+				{
+					{
+						{
+							{
+								'[=[ long string ]=]',
+								rule='LONGSTRING',
+							},
+							rule='string',
+						},
+						rule='expTokens',
+					},
+					rule='exp',
+				},
+				rule='explist',
+			},
+			rule='localAssign',
+		},
+		rule='stat',
+	},
+	{
+		'return',
+		{
+			{
+				{
+					{
+						{
+							{
+								{
+									'a',
+									rule='NAME',
+								},
+								rule='var',
+							},
+							rule='varOrExp',
+						},
+						rule='prefixexp',
+					},
+					rule='expTokens',
+				},
+				rule='exp',
+			},
+			rule='explist',
+		},
+		rule='retstat',
+	},
+	rule='block',
+},
+rule='chunk',
+}
+print("Parsing '"..s.."'")
+res, err = lua.parse(s)
+peg.print_t(res)
+assert(equals(res,rez))
+
 print("\n\n All AST's generated successfully")
 
 print("\n\nAll tests passed!")
