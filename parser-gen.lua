@@ -93,7 +93,7 @@ local function istoken (t)
 end
 
 local function isfinal(t)
-	return t["t"] or t["nt"] or t["func"] or t["s"]
+	return t["t"] or t["nt"] or t["func"] or t["s"] or t["sn"]
 end
 
 local function isaction(t)
@@ -125,6 +125,8 @@ local function finalNode (t)
 		return "func", t["func"] -- function
 	elseif t["s"] then
 		return "s", t["s"]
+	elseif t["sn"] then
+		return "sn", t["sn"]
 	end
 	return nil
 end
@@ -180,7 +182,10 @@ local function buildgrammar (ast)
 	specialrules(ast, builder)
 	for i, v in ipairs(ast) do
 		local istokenrule = v["token"] == "1"
+		local isfragment = v["fragment"] == "1"
+
 		local name = v["rulename"]
+		local isspecial = name == "SKIP" or name == "SYNC"
 		local rule = v["rule"]
 		if i == 1 then
 			table.insert(builder, name) -- lpeg syntax
@@ -199,7 +204,7 @@ local function buildgrammar (ast)
 				builder[name] = traverse(rule, istokenrule)
 			end
 		end
-		if buildast then
+		if buildast and not isfragment and not isspecial then
 			if istokenrule then
 				builder[name] = m.C(builder[name])
 			end
@@ -326,6 +331,8 @@ local function applyfinal(action, term, tokenterm, tokenrule)
 		return definitions[term]
 	elseif action == "s" then -- simple string
 		return term
+	elseif action == "sn" then -- numbered string
+		return tonumber(term)
 	end
 end
 

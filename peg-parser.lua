@@ -59,7 +59,7 @@ local gram = [=[
 	suffixaction	<- 	((		{[+*?]}
 					/ {'^'} {| {:s: [+-]? NUM:} |}
 					/ '^' ''->'^LABEL' label
-					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {| {:s: NUM :} |})
+					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
 					/ {'=>'} S funcname) S )
 
 
@@ -74,15 +74,15 @@ local gram = [=[
 					/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
 					/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
 					/ {| '.' {:action:''->'anychar':} |}
-					/ name S !ARROW
+					/ !fragment name S !ARROW
 					/ '<' name '>'          -- old-style non terminals
 
 	grammar			<- {| definition+ |}
-	definition		<- {| (token  S ARROW {:rule: exp :}) 
-					/ (nontoken  S ARROW {:rule: exp :}) |}
+	definition		<- {| fragment? (token / nontoken) S ARROW {:rule: exp :} |}
 
 	label			<- {| {:s: ERRORNAME :} |}
-
+	fragment		<- {:fragment: 'fragment'->'1' :} ![0-9_a-z] S
+	
 	token			<- {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
 	nontoken		<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
@@ -219,7 +219,7 @@ function peg.print_t ( t )  -- for debugging
                     if (type(val)=="table") then
                         print(indent.."{")
                         sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
-                        print(indent..string.rep(" ",string.len(pos)+6).."},")
+                        print(indent..string.rep(" ",string.len(pos)-1).."},")
                     else
 						if tonumber(pos) then
 							print(indent.."'"..tostring(val).."',")
