@@ -91,7 +91,7 @@ local gram = [=[
 	item		<- defined / range / {| {:t: . :} |}
 	range		<- {| {:action:''->'range':} {:op1: {| {:s: ({: . :} ('-') {: [^]] :} ) -> concat :} |} :} |}
 
-	S			<- (%s / '--' [^%nl]*)*   -- spaces and comments
+	S		<- (%s / '--' [^%nl]*)*   -- spaces and comments
 	name		<- {| {:nt: TOKENNAME :} {:token:''->'1':} / {:nt: NAMESTRING :} |}
 	ERRORNAME	<- NAMESTRING
 	funcname	<- {| {:func: NAMESTRING :} |}
