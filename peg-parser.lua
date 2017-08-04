@@ -104,7 +104,7 @@ local gram = [=[
 	term		<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 	string		<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined		<- {| {:action: '%':} {:op1: defname :} |}
-	AST			<- '' -- for self description test
+	AST		<- '' -- for self description test
 ]=]
 
 local defs = {foldtable=foldtable, concat=concat}
