@@ -147,6 +147,7 @@ and
 *
 ?
 ^num (num is a number with an optional plus or minus sign)
+^label (label is an error label set with setlabels)
 ->
 =>
 tcap
@@ -160,12 +161,12 @@ label
 %
 range
 
-Terminal actions:
-t
-nt
-func
-s
-
+Final token actions:
+t - terminal
+nt - non terminal
+func - function definition
+s - literal string
+sn - literal number
 ]]--
 function peg.pegToAST(input, defs)
 	return p:match(input, defs)
