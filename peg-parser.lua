@@ -50,13 +50,13 @@ local gram = [=[
 
 
 	prefix		<- {| {:action: '&' :} S {:op1: prefix :} |} 
-					/ {| {:action: '!' :} S {:op1: prefix :} |}
-					/ suffix
+				/ {| {:action: '!' :} S {:op1: prefix :} |}
+				/ suffix
 
 	suffix		<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
 
 
-	suffixaction	<- 	((		{[+*?]}
+	suffixaction	<- ((	{[+*?]}
 					/ {'^'} {| {:s: [+-]? NUM:} |}
 					/ '^' ''->'^LABEL' label
 					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
@@ -100,7 +100,7 @@ local gram = [=[
 	TOKENNAME	<- [A-Z_]+ ![0-9a-z]
 	defname		<- {| {:s: NAMESTRING :} |}
 	ARROW		<- '<-'
-	NUM			<- [0-9]+
+	NUM		<- [0-9]+
 	term		<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 	string		<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined		<- {| {:action: '%':} {:op1: defname :} |}
