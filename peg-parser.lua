@@ -56,13 +56,13 @@ local gram = [=[
 	suffix		<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
 
 
-	suffixaction	<- (
+	suffixaction	<-	(
 				({[+*?]}
 				/ {'^'} {| {:s: [+-]? NUM:} |}
 				/ '^' ''->'^LABEL' label
 				/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
 				/ {'=>'} S funcname) 
-			S )
+				S )
 
 
 
