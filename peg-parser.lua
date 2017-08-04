@@ -50,32 +50,32 @@ local gram = [=[
 
 
 	prefix		<- {| {:action: '&' :} S {:op1: prefix :} |} 
-				/ {| {:action: '!' :} S {:op1: prefix :} |}
-				/ suffix
+			/ {| {:action: '!' :} S {:op1: prefix :} |}
+			/ suffix
 
 	suffix		<- ( {:''->'suf':} {| primary S {| suffixaction|}* |} ) -> foldtable
 
 
-	suffixaction	<- ((	{[+*?]}
-					/ {'^'} {| {:s: [+-]? NUM:} |}
-					/ '^' ''->'^LABEL' label
-					/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
-					/ {'=>'} S funcname) S )
+	suffixaction	<- (({[+*?]}
+			/ {'^'} {| {:s: [+-]? NUM:} |}
+			/ '^' ''->'^LABEL' label
+			/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
+			/ {'=>'} S funcname) S )
 
 
 
 
 	primary		<- '(' exp ')' / term / class / defined
-					/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
-					/ {| ('{:' {:action:''->'gcap':} {:op2: defname:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
-					/ {| '=' {:action:''->'bref':} {:op1: defname:} |}
-					/ {| '{}' {:action:''->'poscap':} |}
-					/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
-					/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
-					/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
-					/ {| '.' {:action:''->'anychar':} |}
-					/ !frag name S !ARROW
-					/ '<' name '>'          -- old-style non terminals
+				/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
+				/ {| ('{:' {:action:''->'gcap':} {:op2: defname:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
+				/ {| '=' {:action:''->'bref':} {:op1: defname:} |}
+				/ {| '{}' {:action:''->'poscap':} |}
+				/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
+				/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
+				/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
+				/ {| '.' {:action:''->'anychar':} |}
+				/ !frag name S !ARROW
+				/ '<' name '>'          -- old-style non terminals
 
 	grammar		<- {| definition+ |}
 	definition	<- {| frag? (token / nontoken) S ARROW {:rule: exp :} |}
