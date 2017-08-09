@@ -15,11 +15,11 @@ local grammar = pg.compile [[
   assignstmt <- IDENTIFIER ':=' exp 
   readstmt <-  'read'  IDENTIFIER 
   writestmt <-  'write' exp 
-  exp <-  simpleexp (COMPARISONOP simpleexp)+  / simpleexp
+  exp <-  simpleexp (COMPARISONOP simpleexp)*
   COMPARISONOP <- '<' / '='
-  simpleexp <-  term (ADDOP term)+  / term
+  simpleexp <-  term (ADDOP term)* 
   ADDOP <- [+-]
-  term <-  factor (MULOP factor)+  / factor
+  term <-  factor (MULOP factor)*
   MULOP <- [*/]
   factor <- '(' exp ')' / NUMBER / IDENTIFIER
 
