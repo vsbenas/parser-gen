@@ -43,9 +43,14 @@ updatelocale()
 
 local definitions = {}
 local tlabels = {}
+local totallabels = 0
 local tlabelnames = {} -- reverse table
 local tdescs = {}
 local trecs = {} -- recovery for each error
+
+local currentrule
+local followset = {}
+
 
 
 -- TODO: store these variables for each grammar
@@ -173,6 +178,7 @@ local function buildrecovery(grammar)
 	local grec = grammar
 	
 	for k,v in pairs(tlabels) do
+
 		if trecs[v] then -- custom sync token
 			grec = m.Rec(grec,record(v) * trecs[v], v)
 		else -- use global sync token
@@ -185,25 +191,19 @@ end
 local function buildgrammar (ast)
 	local builder = {}
 	specialrules(ast, builder)
+	local initialrule
 	for i, v in ipairs(ast) do
 		local istokenrule = v["token"] == "1"
 		local isfragment = v["fragment"] == "1"
 
 		local name = v["rulename"]
+		currentrule = name
 		local isspecial = name == "SKIP" or name == "SYNC" or name == "AST"
 		local rule = v["rule"]
 		if i == 1 then
+			initialrule = name
 			table.insert(builder, name) -- lpeg syntax
-			if not builder[name] then
-				if skipspaces then
-					builder[name] = SKIP^0 * traverse(rule, istokenrule) -- skip spaces at the beginning of the input
-				else
-					builder[name] = traverse(rule, istokenrule)
-				end	
-			end
-			if recovery then
-				builder[name] = buildrecovery(builder[name]) -- build recovery on top of initial rule
-			end
+			builder[name] = traverse(rule, istokenrule)
 		else
 			if not builder[name] then -- dont traverse rules for SKIP and SYNC twice
 				builder[name] = traverse(rule, istokenrule)
@@ -215,6 +215,13 @@ local function buildgrammar (ast)
 			end
 			builder[name] = m.Ct(m.Cg(m.Cc(name),"rule") * builder[name])
 		end
+	end
+
+	if skipspaces then
+		builder[initialrule] = SKIP^0 * builder[initialrule] -- skip spaces at the beginning of the input
+	end
+	if recovery then
+		builder[initialrule] = buildrecovery(builder[initialrule]) -- build recovery on top of initial rule
 	end
 	return builder
 end
@@ -229,7 +236,55 @@ local function addspaces (caps)
 	end
 	return caps
 end
+function getn (t)
+  local size = 0
+  for _, _ in pairs(t) do
+    size = size+1
+  end
+  return size
+end
+local function printexpect(op)
+	if(isfinal(op)) then
+		if op["t"] then
+			return "'"..op["t"].."'"
+		end
+		return op["nt"] or op["func"] or op["s"] or op["sn"]
+	else
+		return printexpect(op.op1)
+	end
+end
+local function generateerror(op, after)
 
+	local errs = totallabels
+	local desc = "Expected "..printexpect(op)
+	
+	local err = errs+1
+	if err >= 255 then
+		error("Error label limit reached(255)")
+	end
+	tdescs[err] = desc
+	-- trecs use default
+	local name = "Error"..err
+	tlabels[name] = err
+	tlabelnames[err] = name
+	totallabels = totallabels + 1
+	return name
+end
+local function tryadderror(op, after)
+	if followset[currentrule] then
+		local d = dump(after)
+		
+		if followset[currentrule][d] then
+			local n = getn(followset[currentrule][d])
+			if n == 1 then-- there is exactly one element in the follow set
+				local lab = generateerror(op, after)
+				--peg.print_r({action="^LABEL",op1=op,op2={s=lab}})
+				return {action="^LABEL",op1=op,op2={s=lab}}
+			end
+		end
+	end
+	return op
+end
 local function applyaction(action, op1, op2, labels,tokenrule)
 	if action == "or" then
 		if labels then -- labels = {{s="errName"},{s="errName2"}}
@@ -245,6 +300,7 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 		end
 		return op1 + op2
 	elseif action == "and" then
+
 		return op1 * op2
 	elseif action == "&" then
 		return #op1
@@ -352,8 +408,10 @@ local function build(ast, defs)
 		definitions = defs
 	end
 	if isgrammar(ast) then
+		
 		return traverse(ast)
 	else
+		currentrule = ''
 		return SKIP^0 * traverse(ast) -- input is not a grammar - skip spaces by default
 	end
 end
@@ -381,9 +439,13 @@ function traverse (ast, tokenrule)
 			tokenstack:push(0) -- not found any tokens yet
 		end
 		
+		if act == "and" and not tokenrule then
+			op2 = tryadderror(op2, op1)
+		end
+		
 		ret1 = traverse(op1, tokenrule)
 		ret2 = traverse(op2, tokenrule)
-	
+		
 		
 		return applyaction(act, ret1, ret2, labs, tokenrule)
 		
@@ -417,6 +479,9 @@ function recorderror(position,label)
 		desc = tdescs[label]
 	end
 	if errorfunc then
+		local temp = string.sub(subject,position)
+		local strend = string.find(temp, "\n") 
+		local sfail =  string.sub(temp, 1, strend)
 		errorfunc(desc,line,col,sfail,trecs[label])
 	end
 
@@ -440,7 +505,7 @@ local function compile (input, defs)
 		--re.compile(input,defs)
 		-- build ast
 		ast = peg.pegToAST(input)
-		
+		follow(ast)
 		local gram = build(ast,defs)
 		if not gram then
 			-- find error using relabel module
@@ -459,6 +524,7 @@ end
 local function setlabels (t)
 	local index = 1
 	tlabels = {}
+	
 	tdescs = {}
 	trecs = {}
 	for key,value in pairs(t) do
@@ -476,6 +542,7 @@ local function setlabels (t)
 		tlabelnames[index] = key -- reverse table
 		index = index + 1
 	end
+	totallabels = index-1
 end
 
 local function parse (input, grammar, errorfunction)
@@ -498,6 +565,152 @@ local function parse (input, grammar, errorfunction)
 	return r, errors
 end
 
-local pg = {compile=compile, setlabels=setlabels, parse=parse}
+
+
+function dump(o)-- turns ast into a string
+   if type(o) == 'table' then
+      local s = '{ '
+      for k,v in pairs(o) do
+         if type(k) ~= 'number' then k = '"'..k..'"' end
+         s = s .. '['..k..'] = ' .. dump(v) .. ','
+      end
+      return s .. '} '
+   else
+      return tostring(o)
+   end
+end
+
+local function addtofollow(setof, add)
+	setof = dump(setof)
+	if not currentrule then error("rule not set") end
+	if not followset[currentrule][setof] then
+		followset[currentrule][setof] = {}
+	end
+	if type(add) == "table" then -- add multiple elements
+		for k,v in pairs(add) do
+			table.insert(followset[currentrule][setof],v)
+		end
+	else
+		table.insert(followset[currentrule][setof],add)
+	end
+end
+
+local function f(t, dontsplit) -- follow(a) = b, returns a, b
+	local action = t.action
+	local op1 = t.op1
+	local op2 = t.op2
+	if isfinal(t) then
+		return t
+	end
+	if action == "or" then
+		if dontsplit then -- do not split "(B / C)" in "A (B / C)"
+			return t
+		else
+			local res = {}
+			table.insert(res, f(op1))
+			table.insert(res, f(op2))
+			return res
+		end
+		
+	elseif action == "and" then -- magic happens here
+	
+		addtofollow(op1, f(op2, true))
+		return f(op1)
+		
+		
+	elseif action == "&" then
+		return f(op1)
+	elseif action == "!" then
+		return {'',''}
+	elseif action == "+" then
+		return f(op1)
+	elseif action == "*" then
+		local res = {}
+		table.insert(res, '')
+		table.insert(res, f(op1))
+		return res
+	elseif action == "?" then
+		local res = {}
+		table.insert(res, '')
+		table.insert(res, f(op1))
+		return res
+	elseif action == "^" then
+		if op2 >= 1 then
+			return f(op1)
+		else
+			local res = {}
+			table.insert(res, '')
+			table.insert(res, f(op1))
+			return res
+		end
+	elseif action == "^LABEL" then
+		return f(op1)
+	elseif action == "->" then
+		return f(op1)
+
+	elseif action == "=>" then
+		return f(op1)
+	elseif action == "tcap" then
+		return f(op1) -- nospaces
+	elseif action == "gcap" then
+		return f(op1)
+	elseif action == "bref" then
+		return '' --m.Cmt(m.Cb(op1), equalcap) -- do we need to add spaces to bcap?
+	elseif action == "poscap" then
+		return ''
+	elseif action == "subcap" then
+		return f(op1)
+	elseif action == "scap" then
+		return f(op1)
+	elseif action == "anychar" then
+		return t
+	elseif action == "label" then
+		return ''
+	elseif action == "%" then
+		return definitions[op1]
+	elseif action == "invert" then
+		return t
+	elseif action == "range" then
+		return op1
+	else
+		error("Unsupported action '"..action.."'")
+	end
+end
+--[[
+returns follow set for grammar,
+a <- b c
+b <- c 'd'
+c <- 'c'
+
+follow(gram) = {
+	a = follow(a)
+	b = follow(b)
+	c = follow(c)
+}
+follow(a) = {
+	b = {c}
+}
+
+
+
+]]--
+
+function follow (t)
+	local ret = {}
+	followset = {}
+	if not isgrammar(t) then currentrule = '' return f(t) end
+	for pos,val in pairs(t) do
+		currentrule = val.rulename
+		followset[currentrule] = {}
+		f(val.rule)
+	end
+	return followset
+	
+end
+
+
+
+
+local pg = {compile=compile, setlabels=setlabels, parse=parse,follow=follow}
 
 return pg
