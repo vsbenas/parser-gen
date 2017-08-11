@@ -51,16 +51,19 @@ local trecs = {} -- recovery for each error
 local currentrule
 local followset = {}
 
-
+local function defaultsync(patt)
+	return (m.P(1)^-1) * (-patt * m.P(1))^0
+end
 
 -- TODO: store these variables for each grammar
 local SKIP = (Predef.space + Predef.nl)
-local SYNC = (Predef.nl)
+local SYNC = defaultsync(SKIP)
 
 
 local recovery = true
 local skipspaces = true
 local buildast = true
+local generateerrors = false
 
 local function sync (patt)
 	return patt --(-patt * m.P(1))^0 * patt^0 -- skip until we find the pattern and consume it(if we do)
@@ -121,7 +124,6 @@ local function iscapture (action)
 end
 
 local function finalNode (t)
-	if t.tx then return "aaaaaa",false end
 	if t["t"] then
 		return"t",t["t"] -- terminal
 	elseif t["nt"] then
@@ -139,9 +141,10 @@ local function specialrules(t, builder)
 	-- initialize values
 	SKIP = (Predef.space + Predef.nl)
 	skipspaces = true
-	SYNC = (Predef.nl)
+	SYNC = nil
 	recovery = true
 	buildast = true
+	generateerrors = true
 	-- find SPACE and SYNC rules
 	for i, v in ipairs(ast) do
 		local name = v["rulename"]
@@ -168,7 +171,14 @@ local function specialrules(t, builder)
 			if v["rule"]["t"] == '' then-- AST <- ''
 				buildast=false
 			end
+		elseif name == "ERRORS" then
+			if v["rule"]["t"] == '' then
+				generateerrors=false
+			end
 		end
+	end
+	if not SYNC then
+		SYNC = defaultsync(SKIP)
 	end
 end
 
@@ -244,13 +254,19 @@ function getn (t)
   return size
 end
 local function printexpect(op)
+	--peg.print_r(op)
 	if(isfinal(op)) then
 		if op["t"] then
 			return "'"..op["t"].."'"
 		end
 		return op["nt"] or op["func"] or op["s"] or op["sn"]
 	else
-		return printexpect(op.op1)
+		local test = op.op1
+		if not test then
+			return op.action
+		else
+			return printexpect(test)
+		end
 	end
 end
 local function generateerror(op, after)
@@ -439,8 +455,10 @@ function traverse (ast, tokenrule)
 			tokenstack:push(0) -- not found any tokens yet
 		end
 		
-		if act == "and" and not tokenrule then
+		if act == "and" and not tokenrule and generateerrors then
+			--print("before: "..dump(op2))
 			op2 = tryadderror(op2, op1)
+			--print("after: "..dump(op2))
 		end
 		
 		ret1 = traverse(op1, tokenrule)
@@ -600,11 +618,11 @@ local function f(t, dontsplit) -- follow(a) = b, returns a, b
 	local op1 = t.op1
 	local op2 = t.op2
 	if isfinal(t) then
-		return t
+		return {t}
 	end
 	if action == "or" then
 		if dontsplit then -- do not split "(B / C)" in "A (B / C)"
-			return t
+			return {t}
 		else
 			local res = {}
 			table.insert(res, f(op1))
@@ -655,9 +673,9 @@ local function f(t, dontsplit) -- follow(a) = b, returns a, b
 	elseif action == "gcap" then
 		return f(op1)
 	elseif action == "bref" then
-		return '' --m.Cmt(m.Cb(op1), equalcap) -- do we need to add spaces to bcap?
+		return {'',''} --m.Cmt(m.Cb(op1), equalcap) -- do we need to add spaces to bcap?
 	elseif action == "poscap" then
-		return ''
+		return {'',''}
 	elseif action == "subcap" then
 		return f(op1)
 	elseif action == "scap" then
@@ -665,11 +683,11 @@ local function f(t, dontsplit) -- follow(a) = b, returns a, b
 	elseif action == "anychar" then
 		return t
 	elseif action == "label" then
-		return ''
+		return {'',''}
 	elseif action == "%" then
 		return definitions[op1]
 	elseif action == "invert" then
-		return t
+		return {'',''}
 	elseif action == "range" then
 		return op1
 	else
@@ -703,6 +721,7 @@ function follow (t)
 		currentrule = val.rulename
 		followset[currentrule] = {}
 		f(val.rule)
+		--print(dump(followset[currentrule]))
 	end
 	return followset
 	

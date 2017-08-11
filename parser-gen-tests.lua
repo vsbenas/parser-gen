@@ -31,6 +31,7 @@ assert(not res)
 rule = pg.compile [[
 rule <- 'a' 'b'
 SKIP <- ''
+SYNC <- ''
 ]]
 str = "a     b"
 res = pg.parse(str,rule)
@@ -54,7 +55,7 @@ A	<- 'a'
 B	<- 'b'
 ]]
 str = "a     b"
-res = pg.parse(str,rule)
+res, err = pg.parse(str,rule)
 assert(res)
 -- no spaces allowed
 rule = pg.compile [[
@@ -126,6 +127,16 @@ assert(res1 and res2)
 
 -- TESTING ERROR GENERATION
 
+pg.setlabels({})
+rule = pg.compile [[
+rule <- A B C 
+A <- 'a'
+B <- 'b'
+C <- 'c'
+
+]]
+res1, errs = pg.parse("abd",rule)
+assert(errs[1]["msg"] == "Expected C")
 
 -- TESTING RECOVERY GENERATION
 
@@ -133,7 +144,7 @@ assert(res1 and res2)
 -- SELF-DESCRIPTION
 
 gram = pg.compile(peg.gram, peg.defs)
-res1 = pg.parse(peg.gram,gram)
+res1, errs = pg.parse(peg.gram,gram)
 assert(res1) -- parse succesful
 
 
@@ -143,6 +154,7 @@ res2 = r:match(peg.gram)
 --peg.print_r(res2)
 
 assert(equals(res1, res2))
+
 
 
 print("all tests succesful")

@@ -108,6 +108,7 @@ local gram = [=[
 	string		<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined		<- {| {:action: '%':} {:op1: defname :} |}
 	AST		<- '' -- for self description test
+	ERRORS	<- ''
 ]=]
 
 local defs = {foldtable=foldtable, concat=concat}
