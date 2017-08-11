@@ -24,8 +24,11 @@ local grammar = pg.compile [[
   factor <- '(' exp ')' / NUMBER / IDENTIFIER
 
   NUMBER <- '-'? [0-9]+
-  IDENTIFIER <- [a-zA-Z]+
-  SYNC <- ';' / '\n' / '\r'
+  KEYWORDS <- 'if' / 'repeat' / 'read' / 'write' / 'then' / 'else' / 'end' / 'until' 
+  RESERVED <- KEYWORDS ![a-zA-Z]
+  IDENTIFIER <- !RESERVED [a-zA-Z]+
+  HELPER <- ';' / %nl / %s / KEYWORDS
+  SYNC <- (!HELPER .)*
 
 ]]
 
@@ -42,12 +45,14 @@ end
 
 local function parse(input)
 	result, errors = pg.parse(input,grammar,_,printerror)
-	return result
+	return result, errors
 end
 
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
-	peg.print_r(parse(arg[1]))
+	res, errs = parse(arg[1])
+	peg.print_r(res)
+	peg.print_r(errs)
 end
 local ret = {parse=parse}
 return ret
