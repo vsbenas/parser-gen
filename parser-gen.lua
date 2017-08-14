@@ -177,7 +177,7 @@ local function specialrules(t, builder)
 			end
 		end
 	end
-	if not SYNC then
+	if not SYNC and recovery then
 		SYNC = defaultsync(SKIP)
 	end
 end

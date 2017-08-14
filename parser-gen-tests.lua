@@ -135,7 +135,7 @@ B <- 'b'
 C <- 'c'
 
 ]]
-res1, errs = pg.parse("abd",rule)
+res1, errs = pg.parse("ab",rule)
 assert(errs[1]["msg"] == "Expected C")
 
 -- TESTING RECOVERY GENERATION
