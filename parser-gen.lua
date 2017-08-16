@@ -1,7 +1,6 @@
 local m = require "lpeglabel"
 local peg = require "peg-parser"
-local re = require "relabel"
-
+local eg = require "errorgen"
 local s = require "stack"
 
 -- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
@@ -63,7 +62,6 @@ local SYNC = defaultsync(SKIP)
 local recovery = true
 local skipspaces = true
 local buildast = true
-local generateerrors = false
 
 local function sync (patt)
 	return patt --(-patt * m.P(1))^0 * patt^0 -- skip until we find the pattern and consume it(if we do)
@@ -143,8 +141,6 @@ local function specialrules(t, builder)
 	skipspaces = true
 	SYNC = nil
 	recovery = true
-	buildast = true
-	generateerrors = true
 	-- find SPACE and SYNC rules
 	for i, v in ipairs(ast) do
 		local name = v["rulename"]
@@ -167,14 +163,6 @@ local function specialrules(t, builder)
 				SYNC = rule
 			end
 			builder[name] = rule
-		elseif name == "AST" then
-			if v["rule"]["t"] == '' then-- AST <- ''
-				buildast=false
-			end
-		elseif name == "ERRORS" then
-			if v["rule"]["t"] == '' then
-				generateerrors=false
-			end
 		end
 	end
 	if not SYNC and recovery then
@@ -208,7 +196,7 @@ local function buildgrammar (ast)
 
 		local name = v["rulename"]
 		currentrule = name
-		local isspecial = name == "SKIP" or name == "SYNC" or name == "AST"
+		local isspecial = name == "SKIP" or name == "SYNC"
 		local rule = v["rule"]
 		if i == 1 then
 			initialrule = name
@@ -246,61 +234,7 @@ local function addspaces (caps)
 	end
 	return caps
 end
-function getn (t)
-  local size = 0
-  for _, _ in pairs(t) do
-    size = size+1
-  end
-  return size
-end
-local function printexpect(op)
-	--peg.print_r(op)
-	if(isfinal(op)) then
-		if op["t"] then
-			return "'"..op["t"].."'"
-		end
-		return op["nt"] or op["func"] or op["s"] or op["sn"]
-	else
-		local test = op.op1
-		if not test then
-			return op.action
-		else
-			return printexpect(test)
-		end
-	end
-end
-local function generateerror(op, after)
 
-	local errs = totallabels
-	local desc = "Expected "..printexpect(op)
-	
-	local err = errs+1
-	if err >= 255 then
-		error("Error label limit reached(255)")
-	end
-	tdescs[err] = desc
-	-- trecs use default
-	local name = "Error"..err
-	tlabels[name] = err
-	tlabelnames[err] = name
-	totallabels = totallabels + 1
-	return name
-end
-local function tryadderror(op, after)
-	if followset[currentrule] then
-		local d = dump(after)
-		
-		if followset[currentrule][d] then
-			local n = getn(followset[currentrule][d])
-			if n == 1 then-- there is exactly one element in the follow set
-				local lab = generateerror(op, after)
-				--peg.print_r({action="^LABEL",op1=op,op2={s=lab}})
-				return {action="^LABEL",op1=op,op2={s=lab}}
-			end
-		end
-	end
-	return op
-end
 local function applyaction(action, op1, op2, labels,tokenrule)
 	if action == "or" then
 		if labels then -- labels = {{s="errName"},{s="errName2"}}
@@ -455,12 +389,6 @@ function traverse (ast, tokenrule)
 			tokenstack:push(0) -- not found any tokens yet
 		end
 		
-		if act == "and" and not tokenrule and generateerrors then
-			--print("before: "..dump(op2))
-			op2 = tryadderror(op2, op1)
-			--print("after: "..dump(op2))
-		end
-		
 		ret1 = traverse(op1, tokenrule)
 		ret2 = traverse(op2, tokenrule)
 		
@@ -481,6 +409,14 @@ end
 
 -- recovery grammar
 
+-- from relabel.lua module
+local function calcline (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
+  local col = #rest
+  return 1 + line, col ~= 0 and col or 1
+end
+
 local subject, errors, errorfunc
 
 function record(label)
@@ -489,7 +425,7 @@ end
 
 function recorderror(position,label)
 	-- call error function here
-	local line, col = re.calcline(subject, position)
+	local line, col = calcline(subject, position)
 	local desc
 	if label == 0 then
 		desc = "Syntax error"
@@ -514,37 +450,20 @@ end
 -- end
 
 
-local function compile (input, defs)
-	if iscompiled(input) then 
-		return input 
-	end
-	if not mem[input] then
-		--re.setlabels(tlabels)
-		--re.compile(input,defs)
-		-- build ast
-		ast = peg.pegToAST(input)
-		follow(ast)
-		local gram = build(ast,defs)
-		if not gram then
-			-- find error using relabel module
-			
-		end
-		mem[input] = gram-- store if the user forgets to compile it
-	end
-	return mem[input]
-end
-
-
-
-
 
 -- t = {errName="Error description",...}
-local function setlabels (t)
-	local index = 1
-	tlabels = {}
-	
-	tdescs = {}
-	trecs = {}
+local function setlabels (t, errorgen)
+	local index
+	if errorgen then
+		index = totallabels + 1
+	else
+		-- reset error tables
+		index = 1
+		tlabels = {}
+		
+		tdescs = {}
+		trecs = {}
+	end
 	for key,value in pairs(t) do
 		if index >= 255 then
 			error("Error label limit reached(255)")
@@ -562,6 +481,40 @@ local function setlabels (t)
 	end
 	totallabels = index-1
 end
+
+
+local function compile (input, defs, errors, nocaptures)
+	if iscompiled(input) then 
+		return input 
+	end
+	if not mem[input] then
+		buildast = true
+		if nocaptures then
+			buildast=false
+		end
+		--re.setlabels(tlabels)
+		--re.compile(input,defs)
+		-- build ast
+		ast = peg.pegToAST(input)
+		if errors then
+			local follow = eg.follow(ast)
+			local errors = eg.adderrors(ast, follow)
+			setlabels (errors, true) -- add errors generated by errorgen
+		end
+		local gram = build(ast,defs)
+		if not gram then
+			-- find error using relabel module
+			
+		end
+		mem[input] = gram-- store if the user forgets to compile it
+	end
+	return mem[input]
+end
+
+
+
+
+
 
 local function parse (input, grammar, errorfunction)
 	sp = {}
@@ -583,149 +536,6 @@ local function parse (input, grammar, errorfunction)
 	return r, errors
 end
 
-
-
-function dump(o)-- turns ast into a string
-   if type(o) == 'table' then
-      local s = '{ '
-      for k,v in pairs(o) do
-         if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. dump(v) .. ','
-      end
-      return s .. '} '
-   else
-      return tostring(o)
-   end
-end
-
-local function addtofollow(setof, add)
-	setof = dump(setof)
-	if not currentrule then error("rule not set") end
-	if not followset[currentrule][setof] then
-		followset[currentrule][setof] = {}
-	end
-	if type(add) == "table" then -- add multiple elements
-		for k,v in pairs(add) do
-			table.insert(followset[currentrule][setof],v)
-		end
-	else
-		table.insert(followset[currentrule][setof],add)
-	end
-end
-
-local function f(t, dontsplit) -- follow(a) = b, returns a, b
-	local action = t.action
-	local op1 = t.op1
-	local op2 = t.op2
-	if isfinal(t) then
-		return {t}
-	end
-	if action == "or" then
-		if dontsplit then -- do not split "(B / C)" in "A (B / C)"
-			return {t}
-		else
-			local res = {}
-			table.insert(res, f(op1))
-			table.insert(res, f(op2))
-			return res
-		end
-		
-	elseif action == "and" then -- magic happens here
-	
-		addtofollow(op1, f(op2, true))
-		return f(op1)
-		
-		
-	elseif action == "&" then
-		return f(op1)
-	elseif action == "!" then
-		return {'',''}
-	elseif action == "+" then
-		return f(op1)
-	elseif action == "*" then
-		local res = {}
-		table.insert(res, '')
-		table.insert(res, f(op1))
-		return res
-	elseif action == "?" then
-		local res = {}
-		table.insert(res, '')
-		table.insert(res, f(op1))
-		return res
-	elseif action == "^" then
-		if op2 >= 1 then
-			return f(op1)
-		else
-			local res = {}
-			table.insert(res, '')
-			table.insert(res, f(op1))
-			return res
-		end
-	elseif action == "^LABEL" then
-		return f(op1)
-	elseif action == "->" then
-		return f(op1)
-
-	elseif action == "=>" then
-		return f(op1)
-	elseif action == "tcap" then
-		return f(op1) -- nospaces
-	elseif action == "gcap" then
-		return f(op1)
-	elseif action == "bref" then
-		return {'',''} --m.Cmt(m.Cb(op1), equalcap) -- do we need to add spaces to bcap?
-	elseif action == "poscap" then
-		return {'',''}
-	elseif action == "subcap" then
-		return f(op1)
-	elseif action == "scap" then
-		return f(op1)
-	elseif action == "anychar" then
-		return t
-	elseif action == "label" then
-		return {'',''}
-	elseif action == "%" then
-		return definitions[op1]
-	elseif action == "invert" then
-		return {'',''}
-	elseif action == "range" then
-		return op1
-	else
-		error("Unsupported action '"..action.."'")
-	end
-end
---[[
-returns follow set for grammar,
-a <- b c
-b <- c 'd'
-c <- 'c'
-
-follow(gram) = {
-	a = follow(a)
-	b = follow(b)
-	c = follow(c)
-}
-follow(a) = {
-	b = {c}
-}
-
-
-
-]]--
-
-function follow (t)
-	local ret = {}
-	followset = {}
-	if not isgrammar(t) then currentrule = '' return f(t) end
-	for pos,val in pairs(t) do
-		currentrule = val.rulename
-		followset[currentrule] = {}
-		f(val.rule)
-		--print(dump(followset[currentrule]))
-	end
-	return followset
-	
-end
 
 
 
