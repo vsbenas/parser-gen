@@ -81,14 +81,14 @@ local gram = [=[
 			/ '<' name '>'          -- old-style non terminals
 
 	grammar		<- {| definition+ |}
-	definition	<- {| (token / nontoken) S ARROW {:rule: exp :} |}
+	definition	<- {| frag? (token / nontoken) S ARROW {:rule: exp :} |}
 
 	label		<- {| {:s: ERRORNAME :} |}
 	
 	frag		<- {:fragment: 'fragment'->'1' :} ![0-9_a-z] S !ARROW
 	
-	token		<- frag? {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
-	nontoken	<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
+	token		<- {:rulename: TOKENNAME :} {:token:''->'1':}
+	nontoken	<- {:rulename: NAMESTRING :} 
 
 	class		<- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
 	classset	<- ( {:''->'or':} {| {: item :} (!']' {: item :})* |} ) -> foldtable
@@ -108,7 +108,6 @@ local gram = [=[
 	term		<- {| '"' {:t: [^"]* :} '"' / "'" {:t: [^']* :} "'" |}
 	string		<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined		<- {| {:action: '%':} {:op1: defname :} |}
-	AST		<- '' -- for self description test
 ]=]
 
 local defs = {foldtable=foldtable, concat=concat}
@@ -215,14 +214,14 @@ function peg.print_r ( t )  -- for debugging
 end
 function peg.print_t ( t )  -- for debugging
     local print_r_cache={}
-    local function sub_print_r(t,indent)
+    local function sub_print_r (t,indent)
         if (print_r_cache[tostring(t)]) then
             print(indent.."*"..tostring(t))
         else
             print_r_cache[tostring(t)]=true
             if (type(t)=="table") then
-                for pos,val in pairs(t) do
-                    if (type(val)=="table") then
+				local function subprint (pos,val,ident)
+					if (type(val)=="table") then
                         print(indent.."{")
                         sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
                         print(indent..string.rep(" ",string.len(pos)-1).."},")
@@ -233,6 +232,14 @@ function peg.print_t ( t )  -- for debugging
 							print(indent..pos.."='"..tostring(val).."',")
 						end
                     end
+				end
+				if t["rule"] then 
+					subprint("rule",t["rule"],ident)
+				end
+                for pos,val in pairs(t) do
+					if pos ~= "rule" then
+						subprint(pos,val,ident)
+					end
                 end
             else
                 print(indent..tostring(t))
