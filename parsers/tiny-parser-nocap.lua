@@ -5,12 +5,13 @@ local errs = {errMissingThen = "Missing Then"}
 pg.setlabels(errs)
 
 
-local grammar = pg.compile [[
+local grammar = pg.compile([[
 
   program <- stmtsequence !.
   stmtsequence <- statement (';' statement)* 
   statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
-  ifstmt <- 'if' exp ('then' / %{errMissingThen}) stmtsequence ('else' stmtsequence)? 'end' 
+  ifstmt <- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
+  elsestmt <- ('else' stmtsequence)
   repeatstmt <-  'repeat' stmtsequence 'until' exp 
   assignstmt <- IDENTIFIER ':=' exp 
   readstmt <-  'read'  IDENTIFIER 
@@ -27,10 +28,10 @@ local grammar = pg.compile [[
   KEYWORDS <- 'if' / 'repeat' / 'read' / 'write' / 'then' / 'else' / 'end' / 'until' 
   RESERVED <- KEYWORDS ![a-zA-Z]
   IDENTIFIER <- !RESERVED [a-zA-Z]+
-  HELPER <- ';' / %nl / %s / KEYWORDS
+  HELPER <- ';' / %nl / %s / KEYWORDS / !.
   SYNC <- (!HELPER .)*
 
-]]
+]], _, true)
 
 local function printerror(label,line,col)
 	local err
