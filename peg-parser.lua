@@ -57,7 +57,7 @@ local gram = [=[
 
 
 	suffixaction	<- {[+*?]}
-			/ {'^'} {| {:s: [+-]? NUM:} |}
+			/ {'^'} {| {:sn: [+-]? NUM:} |}
 			/ '^' ''->'^LABEL' label
 			/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
 			/ {'=>'} S funcname
