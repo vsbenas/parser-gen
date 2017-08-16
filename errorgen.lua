@@ -299,7 +299,7 @@ end
 -- generate error message by traversing table to the left
 local function printexpect(op)
 	--peg.print_r(op)
-	if(isfinal(op)) then
+	if isfinal(op) then
 		if op["t"] then
 			return "'"..op["t"].."'"
 		end
@@ -336,7 +336,7 @@ local function tryadderror(op, after)
 	
 		local rhs = rightleaf(after)
 		-- (A / B) C
-		-- generate error iff #FOLLOW(A) = #FOLLOW(B) = 1
+		-- generate error iff #FOLLOW(A) OR #FOLLOW(B) = 1
 		local generate = false
 		for k,v in pairs(rhs) do
 			if FOLLOW[v] then
