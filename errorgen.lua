@@ -2,7 +2,7 @@
 -- AST funcs:
 
 local function isfinal(t)
-	return t["t"] or t["nt"] or t["func"] or t["s"] or t["sn"]
+	return t["t"] or t["nt"] or t["func"] or t["s"] or t["num"]
 end
 
 local function isaction(t)
@@ -33,8 +33,8 @@ local function finalNode (t)
 		return "func", t["func"] -- function
 	elseif t["s"] then
 		return "s", t["s"]
-	elseif t["sn"] then
-		return "sn", t["sn"]
+	elseif t["num"] then
+		return "num", t["num"]
 	end
 	return nil
 end
@@ -119,7 +119,7 @@ local function rightleaf(t)
 
 	elseif action == "^" then
 	
-		op2 = op2["sn"] -- second operand is number
+		op2 = op2["num"] -- second operand is number
 		if op2 >= 1 then
 			return rightleaf(op1)
 		else
@@ -227,7 +227,7 @@ local function follow_aux(t, dontsplit)
 		
 	elseif action == "^" then
 	
-		op2 = op2["sn"]
+		op2 = op2["num"]
 		
 		if op2 >= 1 then
 			return follow_aux(op1)
@@ -303,7 +303,7 @@ local function printexpect(op)
 		if op["t"] then
 			return "'"..op["t"].."'"
 		end
-		return op["nt"] or op["func"] or op["s"] or op["sn"]
+		return op["nt"] or op["func"] or op["s"] or op["num"]
 	else
 		local test = op.op1
 		if not test then

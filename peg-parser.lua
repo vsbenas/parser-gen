@@ -49,17 +49,16 @@ local gram = [=[
 	seq		<- ( {:''->'and':} {| {: prefix :}+ |} ) -> foldtable
 
 
-	prefix		<- {| {:action: '&' :} S {:op1: prefix :} |} 
-			/ {| {:action: '!' :} S {:op1: prefix :} |}
+	prefix		<- {| {:action: ('&' / '!') :} S {:op1: prefix :} |} 
 			/ suffix
 
 	suffix		<- ( {:''->'suf':} {| primary S {| suffixaction S |}* |} ) -> foldtable
 
 
 	suffixaction	<- {[+*?]}
-			/ {'^'} {| {:sn: [+-]? NUM:} |}
-			/ '^' ''->'^LABEL' label
-			/ {'->'} S (string / {| '{}' {:action:''->'poscap':} |} / funcname / {|{:sn: NUM :} |})
+			/ {'^'} {| {:num: [+-]? NUM:} |}
+			/ '^'->'^LABEL' label
+			/ {'->'} S (string / {| {:action:'{}'->'poscap':} |} / funcname / {|{:num: NUM :} |})
 			/ {'=>'} S funcname
 
 
@@ -69,24 +68,26 @@ local gram = [=[
 			/ term
 			/ class
 			/ defined
-			/ {| '%{' S {:action:''->'label':} {:op1: label:} S '}' |}
-			/ {| ('{:' {:action:''->'gcap':} {:op2: defname:} ':' {:op1:exp:} ':}') / ( '{:' {:action:''->'gcap':} {:op1:exp:} ':}')  |}
-			/ {| '=' {:action:''->'bref':} {:op1: defname:} |}
-			/ {| '{}' {:action:''->'poscap':} |}
-			/ {| '{~' {:action:''->'subcap':} {:op1: exp:} '~}' |}
-			/ {| '{|' {:action:''->'tcap':} {:op1: exp:} '|}' |}
-			/ {| '{' {:action:''->'scap':} {:op1: exp:} '}' |}
-			/ {| '.' {:action:''->'anychar':} |}
+			/ {| {:action: '%{'->'label':} S {:op1: label:} S '}' |}
+			/ {| {:action: '{:'->'gcap':} {:op2: defname:} ':' {:op1:exp:} ':}' |}
+			/ {| {:action: '{:'->'gcap':} {:op1:exp:} ':}'  |}
+			/ {| {:action: '='->'bref':} {:op1: defname:} |}
+			/ {| {:action: '{}'->'poscap':} |}
+			/ {| {:action: '{~'->'subcap':} {:op1: exp:} '~}' |}
+			/ {| {:action: '{|'->'tcap':} {:op1: exp:} '|}' |}
+			/ {| {:action: '{'->'scap':} {:op1: exp:} '}' |}
+			/ {| {:action: '.'->'anychar':} |}
 			/ !frag name S !ARROW
 			/ '<' name '>'          -- old-style non terminals
 
 	grammar		<- {| definition+ |}
-	definition	<- {| frag? (token / nontoken) S ARROW {:rule: exp :} |}
+	definition	<- {| (token / nontoken) S ARROW {:rule: exp :} |}
 
 	label		<- {| {:s: ERRORNAME :} |}
+	
 	frag		<- {:fragment: 'fragment'->'1' :} ![0-9_a-z] S !ARROW
 	
-	token		<- {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
+	token		<- frag? {:rulename: [A-Z_]+ ![0-9_a-z] :} {:token:''->'1':}
 	nontoken	<- {:rulename: [A-Za-z][A-Za-z0-9_]* :} 
 
 	class		<- '[' ( ('^' {| {:action:''->'invert':} {:op1: classset :} |} ) / classset ) ']' 
@@ -108,7 +109,6 @@ local gram = [=[
 	string		<- {| '"' {:s: [^"]* :} '"' / "'" {:s: [^']* :} "'" |}
 	defined		<- {| {:action: '%':} {:op1: defname :} |}
 	AST		<- '' -- for self description test
-	ERRORS	<- ''
 ]=]
 
 local defs = {foldtable=foldtable, concat=concat}
@@ -170,7 +170,7 @@ t - terminal
 nt - non terminal
 func - function definition
 s - literal string
-sn - literal number
+num - literal number
 ]]--
 function peg.pegToAST(input, defs)
 	return p:match(input, defs)

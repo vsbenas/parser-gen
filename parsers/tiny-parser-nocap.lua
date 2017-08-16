@@ -7,7 +7,7 @@ pg.setlabels(errs)
 
 local grammar = pg.compile([[
 
-  program <- stmtsequence !.
+  program <- stmtsequence !. 
   stmtsequence <- statement (';' statement)* 
   statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
   ifstmt <- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 

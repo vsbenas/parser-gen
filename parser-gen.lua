@@ -99,7 +99,7 @@ local function istoken (t)
 end
 
 local function isfinal(t)
-	return t["t"] or t["nt"] or t["func"] or t["s"] or t["sn"]
+	return t["t"] or t["nt"] or t["func"] or t["s"] or t["num"]
 end
 
 local function isaction(t)
@@ -130,8 +130,8 @@ local function finalNode (t)
 		return "func", t["func"] -- function
 	elseif t["s"] then
 		return "s", t["s"]
-	elseif t["sn"] then
-		return "sn", t["sn"]
+	elseif t["num"] then
+		return "num", t["num"]
 	end
 	return nil
 end
@@ -342,7 +342,7 @@ local function applyfinal(action, term, tokenterm, tokenrule)
 		return definitions[term]
 	elseif action == "s" then -- simple string
 		return term
-	elseif action == "sn" then -- numbered string
+	elseif action == "num" then -- numbered string
 		return tonumber(term)
 	end
 end
