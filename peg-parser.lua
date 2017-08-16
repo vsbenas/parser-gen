@@ -97,7 +97,7 @@ end
 
 local gram = [=[
 
-	pattern		<- exp !.
+	pattern		<- (exp / %{NoPatt}) (!. / %{ExtraChars})
 	exp		<- S (grammar / alternative)
 
 	labels		<- {| '{' {: (label / %{ExpLab1}) :} (',' {: (label / %{ExpLab2}) :})* ('}' / %{MisClose7}) |}
@@ -249,30 +249,16 @@ function peg.pegToAST(input, defs)
 		end
 		local lines = splitlines(input)
 		local line, col = re.calcline(input, #input - #sfail + 1)
-		--local line, col = calcline(p, #p - #suffix + 1)
 		local err = {}
 		table.insert(err, "L" .. line .. ":C" .. col .. ": " .. lab)
 		table.insert(err, lines[line])
 		table.insert(err, string.rep(" ", col-1) .. "^")
 		error("syntax error(s) in pattern\n" .. table.concat(err, "\n"), 3)
-
 	end
 	return r
 end
 
---[[
-function peg.setlabels(t)
-	for key,value in pairs(t) do
-		if (type(key) ~= "string") then
-			error("Invalid error label key '"..value.."'. Keys must be strings.")
-		end
-		if (type(value) ~= "number") or value < 1 or value > 255 then
-			error("Invalid error label value '"..value.."'. Error label keys must be integers from 1 to 255")
-		end
-	end
-	labels = t
-end
-]]--
+
 function peg.print_r ( t )  -- for debugging
     local print_r_cache={}
     local function sub_print_r(t,indent)
