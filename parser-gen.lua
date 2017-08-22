@@ -6,6 +6,9 @@ local s = require "stack"
 -- create stack for tokens inside captures. nil - not inside capture, 0 - inside capture, 1 - token found inside capture
 local tokenstack = Stack:Create()
 
+-- Lua 5.1 compatibility:
+local unpack = unpack or table.unpack
+
 
 local Predef = { nl = m.P"\n", cr = m.P"\r", tab = m.P"\t" }
 
@@ -246,7 +249,7 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 				end
 				labels[i] = lab
 			end
-			return m.Rec(op1,op2,table.unpack(labels))
+			return m.Rec(op1,op2,unpack(labels))
 		end
 		return op1 + op2
 	elseif action == "and" then

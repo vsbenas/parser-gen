@@ -1,7 +1,7 @@
 -- Stack Table
 -- Uses a table as stack, use <table>:push(value) and <table>:pop()
 -- Lua 5.1 compatible
-
+local unpack = unpack or table.unpack
 -- GLOBAL
 Stack = {}
 
@@ -45,7 +45,7 @@ function Stack:Create()
       end
     end
     -- return unpacked entries
-    return table.unpack(entries)
+    return unpack(entries)
   end
 
   -- get entries
