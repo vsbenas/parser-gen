@@ -1,17 +1,25 @@
 # parser-gen
-A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, the tool can also generate automatic errors for common idioms and generate recovery patterns using [LpegLabel](https://github.com/sqmedeiros/lpeglabel).
 
+A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, labelled errors can be used in the grammar to indicate failure position, and recovery grammars are generated to continue parsing the input using [LpegLabel](https://github.com/sqmedeiros/lpeglabel). The tool can also automatically generate error labels and recovery grammars for LL(1) grammars.
+
+parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here]().
 ---
+### Requirements
+```
+lua >= 5.1
+lpeglabel >= 1.2.0
+```
 ### Syntax
 The main operation of the tool is *parse*:
+
 ```lua
 parser-gen.parse(input, grammar [, errorfunction])
 ```
 Arguments:
 
-*input* - the string to be parsed
+*input* - input string
 
-*grammar* - a PEG grammar, explained below
+*grammar* - a compiled PEG grammar using 
 
 *errorfunction* - optional, a function that will be called if an error is encountered, with the arguments *label* for the error label and *error* a short description of the error, *line* for the line in which the error was encountered and *col* for the column.
 
