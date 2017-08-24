@@ -1,63 +1,90 @@
 # parser-gen
 
-A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, labelled errors can be used in the grammar to indicate failure position, and recovery grammars are generated to continue parsing the input using [LpegLabel](https://github.com/sqmedeiros/lpeglabel). The tool can also automatically generate error labels and recovery grammars for LL(1) grammars.
+A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input using a provided grammar and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, labelled errors can be used in the grammar to indicate failure position, and recovery grammars are generated to continue parsing the input using [LpegLabel](https://github.com/sqmedeiros/lpeglabel). The tool can also automatically generate error labels and recovery grammars for LL(1) grammars.
 
 parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here]().
 
 ---
-### Requirements
+# Requirements
 ```
 lua >= 5.1
 lpeglabel >= 1.2.0
 ```
-### Syntax
+# Syntax
+
+### compile
+
+All grammars have to be compiled using *compile*:
+
+```lua
+grammar = parser-gen.compile(input,definitions [, errorgen, noast])
+```
+*Arguments*:
+
+`input` - input string, for example " 'a'* ". For complete syntax see grammar section.
+
+`definitions` - table of custom functions and definitions used inside the grammar, for example {equals=equals}, where equals is a function.
+
+`errorgen` - **EXPERIMENTAL** optional boolean parameter(default:false), when enabled generates error labels automatically. Works well only on LL(1) grammars.
+
+`noast` - optional boolean parameter(default:false), when enabled does not generate an AST for the parse.
+
+*Output*:
+
+`grammar` - a compiled grammar on success, throws error on failure.
+
+### setlabels
+
+If custom error labels are used, the function *setlabels* allows setting their description (and custom recovery pattern):
+```lua
+parser-gen.setlabels(t)
+```
+Example table of a simple error and one with a custom recovery expression:
+```lua
+-- grammar rule: " ifexp <- 'if' exp 'then'^missingThen stmt 'end'^missingEnd "
+local t = {
+  missingEnd = "Missing 'end' in if expression",
+  missingThen = {"Missing 'then' in if expression", " (!stmt .)* "} -- a custom recovery pattern
+}
+parser-gen.setlabels(t)
+```
+If the recovery pattern is not set, then the one specified by the rule SYNC will be used. It is by default set to:
+```lua
+SPACES <- %s / %nl -- a space ' ' or newline '\n' character
+SYNC <- .? (!SPACES .)*
+```
+Learn more about special rules in the grammar section.
+
+### parse
+
 The main operation of the tool is *parse*:
 
 ```lua
-parser-gen.parse(input, grammar [, errorfunction])
+result, errors = parser-gen.parse(input, grammar [, errorfunction])
 ```
-Arguments:
+*Arguments*:
 
-*input* - input string
+`input` - an input string that the tool will attempt to parse.
 
-*grammar* - a compiled PEG grammar using 
+`grammar` - a compiled grammar.
 
-*errorfunction* - optional, a function that will be called if an error is encountered, with the arguments *label* for the error label and *error* a short description of the error, *line* for the line in which the error was encountered and *col* for the column.
-
-Output:
-If the parse is succesful, the function returns an abstract syntax tree containing the captures. Otherwise, the function returns **nil**. If the grammar is invalid, the function throws a run-time error.
-
-Example: a parser for Tiny
+`errorfunction` - an optional function that will be called if an error is encountered, with the arguments `desc` for the error description set using `setlabels()`; location indicators `line` and `col`; the remaining string before failure `sfail` and a custom recovery expression `trec` if available.
+Example:
 ```lua
-pg = require "parser-gen"
-grammar = [[
-program <- stmt-sequence;
-stmt-sequence <- statement (';' statement)*;
-statement <- if-stmt / repeat-stmt / assign-stmt / read-stmt / write-stmt;
-if-stmt <- 'if' exp 'then' stmt-sequence ('else' stmt-sequence)? 'end';
-repeat-stmt <- 'repeat' stmt-sequence 'until' exp;
-assign-stmt <- identifier ':=' exp;
-read-stmt <- 'read' identifier;
-write-stmt <- 'write' exp;
-exp <- simple-exp (COMPARISON-OP simple-exp)*;
-COMPARISON-OP <- '<' / '=';
-simple-exp <- term (ADD-OP term)*;
-ADD-OP <- '+' / '-';
-term <- factor (MUL-OP factor)*;
-MUL-OP <- '*' / '/';
-factor <- '(' exp ')' / NUMBER / IDENTIFIER;
-
-NUMBER <- '-'? [09]+;
-IDENTIFIER <- ([az] / [AZ])+;
-
-]]
-
-function printerror(label,error,line,col)
-  print("Error #"..label..": "..error.." on line "..line.."(col "..col..")")
+local errs = 0
+local function printerror(desc,line,col,sfail,trec)
+	errs = errs+1
+	print("Error #"..errs..": "..desc.." before '"..sfail.."' on line "..line.."(col "..col..")")
 end
-input = "a:=1; if b=3 then c else d end"
-result = pg.parse(input,grammar,printerror)
+
+result, errors = pg.parse(input,grammar,printerror)
 ```
+*Output*:
+If the parse is succesful, the function returns an abstract syntax tree containing the captures `result` and a table of any encountered `errors`. If the parse was unsuccessful, `result` is going to be **nil**.
+Also, if the `noast` option is enabled when compiling the grammar, the function will then produce the longest match length or any custom captures used.
+
+
+Example of all functions: a parser for the Tiny language.
 
 ### Grammar
 The grammar used for this tool is described using PEG-like syntax, that is identical to [relabel](http://www.inf.puc-rio.br/~roberto/lpeg/re.html)
