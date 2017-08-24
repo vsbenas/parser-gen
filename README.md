@@ -2,7 +2,7 @@
 
 A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input using a provided grammar and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, labelled errors can be used in the grammar to indicate failure position, and recovery grammars are generated to continue parsing the input using [LpegLabel](https://github.com/sqmedeiros/lpeglabel). The tool can also automatically generate error labels and recovery grammars for LL(1) grammars.
 
-parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here]().
+parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with my mentor [Sérgio Medeiros](https://github.com/sqmedeiros) from [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here]().
 
 Contents of this page:
 
@@ -99,7 +99,7 @@ Example of all functions: a parser for the Tiny language.
 
 # 3. Grammar Syntax
 
-The grammar used for this tool is described using a PEG-like syntax, that is identical to the one provided by the [re]() module, with an extension of labelled failures provided by [relabel](http://www.inf.puc-rio.br/~roberto/lpeg/re.html) module. That is, all grammars that work with relabel should work with parser-gen.
+The grammar used for this tool is described using a PEG-like syntax, that is identical to the one provided by the [re](http://www.inf.puc-rio.br/~roberto/lpeg/re.html) module, with an extension of labelled failures provided by [relabel](https://github.com/sqmedeiros/lpeglabel) module (except numbered labels). That is, all grammars that work with relabel should work with parser-gen as long as numbered error labels are not used, as they are not supported by parser-gen.
 
 Since this tool automatically consumes SPACE characters, builds ASTs and generates errors, additional extensions have been added based on the [ANTLR](http://www.antlr.org/) syntax.
 
