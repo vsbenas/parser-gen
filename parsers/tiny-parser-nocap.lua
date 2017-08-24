@@ -32,27 +32,23 @@ local grammar = pg.compile([[
   SYNC <- (!HELPER .)*
 
 ]], _, true)
-
-local function printerror(label,line,col)
-	local err
-	if label == 0 then
-		err = "Syntax error"
-	else
-		err = errNames[label]
-	end
-	print("Error #"..label..": "..err.." on line "..line.."(col "..col..")")
+local errors = 0
+local function printerror(desc,line,col,sfail,trec)
+	errors = errors+1
+	print("Error #"..errors..": "..desc.." on line "..line.."(col "..col..")")
 end
 
 
 local function parse(input)
-	result, errors = pg.parse(input,grammar,_,printerror)
+	errors = 0
+	result, errors = pg.parse(input,grammar,printerror)
 	return result, errors
 end
 
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
 	res, errs = parse(arg[1])
-	peg.print_r(res)
+	peg.print_t(res)
 	peg.print_r(errs)
 end
 local ret = {parse=parse}
