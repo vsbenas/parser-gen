@@ -80,6 +80,7 @@ end
 result, errors = pg.parse(input,grammar,printerror)
 ```
 *Output*:
+
 If the parse is succesful, the function returns an abstract syntax tree containing the captures `result` and a table of any encountered `errors`. If the parse was unsuccessful, `result` is going to be **nil**.
 Also, if the `noast` option is enabled when compiling the grammar, the function will then produce the longest match length or any custom captures used.
 
