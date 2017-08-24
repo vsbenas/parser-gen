@@ -4,13 +4,23 @@ A Lua parser generator that makes it possible to describe grammars in a [PEG](ht
 
 parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here]().
 
+Contents of this page:
+
+1. Requirements
+
+2. Syntax
+
+3. Grammar Syntax
+
+4. Example: Tiny Parser
+
 ---
-# Requirements
+# 1. Requirements
 ```
 lua >= 5.1
 lpeglabel >= 1.2.0
 ```
-# Syntax
+# 2. Syntax
 
 ### compile
 
@@ -25,7 +35,7 @@ grammar = parser-gen.compile(input,definitions [, errorgen, noast])
 
 `definitions` - table of custom functions and definitions used inside the grammar, for example {equals=equals}, where equals is a function.
 
-`errorgen` - **EXPERIMENTAL** optional boolean parameter(default:false), when enabled generates error labels automatically. Works well only on LL(1) grammars.
+`errorgen` - **EXPERIMENTAL** optional boolean parameter(default:false), when enabled generates error labels automatically. Works well only on LL(1) grammars. Custom error labels have precedence over automatically generated ones.
 
 `noast` - optional boolean parameter(default:false), when enabled does not generate an AST for the parse.
 
@@ -43,15 +53,15 @@ Example table of a simple error and one with a custom recovery expression:
 ```lua
 -- grammar rule: " ifexp <- 'if' exp 'then'^missingThen stmt 'end'^missingEnd "
 local t = {
-  missingEnd = "Missing 'end' in if expression",
-  missingThen = {"Missing 'then' in if expression", " (!stmt .)* "} -- a custom recovery pattern
+	missingEnd = "Missing 'end' in if expression",
+	missingThen = {"Missing 'then' in if expression", " (!stmt .)* "} -- a custom recovery pattern
 }
 parser-gen.setlabels(t)
 ```
 If the recovery pattern is not set, then the one specified by the rule SYNC will be used. It is by default set to:
 ```lua
-SPACES <- %s / %nl -- a space ' ' or newline '\n' character
-SYNC <- .? (!SPACES .)*
+SKIP <- %s / %nl -- a space ' ' or newline '\n' character
+SYNC <- .? (!SKIP .)*
 ```
 Learn more about special rules in the grammar section.
 
@@ -87,69 +97,191 @@ Also, if the `noast` option is enabled when compiling the grammar, the function 
 
 Example of all functions: a parser for the Tiny language.
 
-### Grammar
-The grammar used for this tool is described using PEG-like syntax, that is identical to [relabel](http://www.inf.puc-rio.br/~roberto/lpeg/re.html)
+# 3. Grammar Syntax
 
-**Atomic parsing expressions**
+The grammar used for this tool is described using a PEG-like syntax, that is identical to the one provided by the [re]() module, with an extension of labelled failures provided by [relabel](http://www.inf.puc-rio.br/~roberto/lpeg/re.html) module. That is, all grammars that work with relabel should work with parser-gen.
 
-1. Terminal symbols are represented using single quotes. ``'abc'`` matches the string "abc", ``'\''`` matches the literal single quote "'". It is also possible to define ranges of symbols using square brackets: ``[az]`` is going to match any lower-case letter.
-2. Non-terminal symbols are represented using alphanumeric strings, with tokens named in all capital letters(A-Z).
-3. The empty string is represented using two single quotation marks. ``''``
-4. End of file is described by the acronym ``EOF``.
+Since this tool automatically consumes SPACE characters, builds ASTs and generates errors, additional extensions have been added based on the [ANTLR](http://www.antlr.org/) syntax.
 
-Atomic parsing expressions **e<sub>1</sub>** and **e<sub>2</sub>** can be combined:
+### Error labels
 
-1. Sequence: **e<sub>1</sub>** **e<sub>2</sub>**
-2. Ordered choice: **e<sub>1</sub>** / **e<sub>2</sub>**. Note that if **e<sub>1</sub>** is matched, **e<sub>2</sub>** is not considered.
-3. Zero-or-more: **e<sub>1</sub>***
-4. One-or-more: **e<sub>1</sub>**+
-5. Optional: **e<sub>1</sub>**?
-6. And-predicate: &**e<sub>1</sub>**. Consumes no input.
-7. Not-predicate: !**e<sub>1</sub>**. Consumes no input.
-8. Error label: %{errorName}. Note that errors are generated automatically, but can be added to the grammar and will have precedence over the automatically generated ones.
+Error labels are provided by the relabel function %{errorname} (errorname must follow `[A-Za-z][A-Za-z0-9_]*` format). Usually we use error labels in a syntax like `'a' ('b' / %{errB}) 'c'`, which throws an error label if `'b'` is not matched. This syntax is quite complicated so an additional syntax is allowed `'a' 'b'^errB 'c'`, which allows cleaner description of grammars. Note: all errors must be defined in a table using parser-gen.setlabels() before compiling and parsing the grammar.
 
-More detailed descriptions (including prioritization) of these can be found [here](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
+### Tokens
 
-
-
-
-All grammar rules follow this syntax:
-``
-RuleName <- Expression;
-``
-RuleName is an identifier of the rule. If the name of the rule is capitalized then it is considered a token.
-The example bellow will match any number of lower-case words seperated by spaces.
+Non-terminals with names in all capital letters, i.e. `[A-Z]+`, are considered tokens and are treated as a single object in parsing. That is, the whole string matched by a token is captured in a single AST entry and space characters are not consumed. Consider two examples:
 ```lua
-grammar = [[
-Rule <- WORD*;
-WORD <- ('a' / [bz])+; -- a lowercase word
+-- a token non-terminal
+grammar = parser-gen.compile [[
+	WORD <- [A-Z]+
 ]]
+res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
 ```
-
-The first rule in the grammar will be considered the initial rule.
-
-Comments in the grammar can be written using the same way as in [Lua](https://www.lua.org/pil/1.3.html).
-
-**Special rules**
-
-*SPACES* defines the different symbols that the parser skips around tokens (and terminals in non-token rules). It is by default defined as:
 ```lua
-SPACES <- ' ' / '\n' / '\r' / '\t'
-```
-The rule can be overwritten by adding it to the grammar, the example below will NOT consume spaces around tokens:
-```lua
-SPACES <- ''
-```
-
-*SYNC* defines the symbols that the parser will skip to if an error is encountered. By default it skips to the end of the line:
-```lua
-SYNC <- '\n' / '\r'
-```
-For some programming languages it might be useful to skip to a semicolon, by adding the following rule in the grammar:
-```lua
-SYNC <- ';' / '\n' / '\r'
+-- a non-token non-terminal
+grammar = parser-gen.compile [[
+	word <- [A-Z]+
+]]
+res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="word", "A", "A", "A"}
 ```
 
+### Fragments
 
+If a token definition is followed by a `fragment` keyword, then the parser does not build an AST entry for that token. Essentially, these rules are used to simplify grammars without building unnecessarily complicated ASTS. Example of `fragment` usage:
+```lua
+grammar = parser-gen.compile [[
+	WORD <- LETTER+
+	fragment LETTER <- [A-Z]
+]]
+res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
+```
+Without using `fragment`:
+```lua
+grammar = parser-gen.compile [[
+	WORD <- LETTER+
+	LETTER <- [A-Z]
+]]
+res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="WORD", {rule="LETTER", "A"}, {rule="LETTER", "A"}}
+
+```
+
+### Special rules
+
+There are two special rules used by the grammar:
+
+#### SKIP
+
+The `SKIP` rule identifies which characters to skip in a grammar. For example, most programming languages do not take into acount any space or newline characters. By default, SKIP is set to:
+```lua
+SKIP <- %s / %nl
+```
+This rule can be extended to contain semicolons `';'`, comments, or any other patterns that the parser can safely ignore.
+
+#### SYNC
+
+This rule specifies the general recovery expression both for custom errors and automatically generated ones. By default:
+```lua
+SYNC <- .? (!SKIP .)*
+```
+
+For some programming languages it might be useful to skip to a semicolon or a keyword, since they usually indicate the end of a statement, so SYNC could be something like:
+```lua
+HELPER <- ';' / 'end' / SKIP -- etc
+SYNC <- (!HELPER .)* SKIP? -- we can consume the spaces after syncing with them as well
+```
+
+# 4. Example: Tiny parser
+
+Below is the full code from *parsers/tiny-parser-nocap.lua*:
+```lua
+package.path = package.path .. ";../?.lua"
+local pg = require "parser-gen"
+local peg = require "peg-parser"
+local errs = {errMissingThen = "Missing Then"} -- one custom error
+pg.setlabels(errs)
+
+
+local grammar = pg.compile([[
+
+  program <- stmtsequence !. 
+  stmtsequence <- statement (';' statement)* 
+  statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
+  ifstmt <- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
+  elsestmt <- ('else' stmtsequence)
+  repeatstmt <-  'repeat' stmtsequence 'until' exp 
+  assignstmt <- IDENTIFIER ':=' exp 
+  readstmt <-  'read'  IDENTIFIER 
+  writestmt <-  'write' exp 
+  exp <-  simpleexp (COMPARISONOP simpleexp)*
+  COMPARISONOP <- '<' / '='
+  simpleexp <-  term (ADDOP term)* 
+  ADDOP <- [+-]
+  term <-  factor (MULOP factor)*
+  MULOP <- [*/]
+  factor <- '(' exp ')' / NUMBER / IDENTIFIER
+
+  NUMBER <- '-'? [0-9]+
+  KEYWORDS <- 'if' / 'repeat' / 'read' / 'write' / 'then' / 'else' / 'end' / 'until' 
+  RESERVED <- KEYWORDS ![a-zA-Z]
+  IDENTIFIER <- !RESERVED [a-zA-Z]+
+  HELPER <- ';' / %nl / %s / KEYWORDS / !.
+  SYNC <- (!HELPER .)*
+
+]], _, true)
+local errors = 0
+local function printerror(desc,line,col,sfail,trec)
+	errors = errors+1
+	print("Error #"..errors..": "..desc.." on line "..line.."(col "..col..")")
+end
+
+
+local function parse(input)
+	errors = 0
+	result, errors = pg.parse(input,grammar,printerror)
+	return result, errors
+end
+
+if arg[1] then	
+	-- argument must be in quotes if it contains spaces
+	res, errs = parse(arg[1])
+	peg.print_t(res)
+	peg.print_r(errs)
+end
+local ret = {parse=parse}
+return ret
+```
+For input: `lua tiny-parser-nocap.lua "if a b:=1"` we get:
+```lua
+Error #1: Missing Then on line 1(col 6)
+Error #2: Expected stmtsequence on line 1(col 9)
+Error #3: Expected 'end' on line 1(col 9)
+-- ast:
+rule='program',
+{
+         rule='stmtsequence',
+         {
+                  rule='statement',
+                  {
+                           rule='ifstmt',
+                           'if',
+                           {
+                                    rule='exp',
+                                    {
+                                             rule='simpleexp',
+                                             {
+                                                      rule='term',
+                                                      {
+                                                               rule='factor',
+                                                               {
+                                                                        rule='IDENTIFIER',
+                                                                        'a',
+                                                               },
+                                                      },
+                                             },
+                                    },
+                           },
+                  },
+         },
+},
+-- error table:
+[1] => {
+         [msg] => 'Missing Then' -- custom error is used over the automatically generated one
+         [line] => '1'
+         [col] => '6'
+         [label] => 'errMissingThen'
+       }
+[2] => {
+         [msg] => 'Expected stmtsequence' -- automatically generated errors
+         [line] => '1'
+         [col] => '9'
+         [label] => 'errorgen6'
+       }
+[3] => {
+         [msg] => 'Expected 'end''
+         [line] => '1'
+         [col] => '9'
+         [label] => 'errorgen4'
+       }
+```
 
 
