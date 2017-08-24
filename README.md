@@ -4,23 +4,23 @@ A Lua parser generator that makes it possible to describe grammars in a [PEG](ht
 
 parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with my mentor [Sérgio Medeiros](https://github.com/sqmedeiros) from [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here]().
 
-Contents of this page:
-
-1. Requirements
-
-2. Syntax
-
-3. Grammar Syntax
-
-4. Example: Tiny Parser
-
 ---
-# 1. Requirements
+# Table of contents
+
+* [Requirements](#requirements)
+
+* [Syntax](#syntax)
+
+* [Grammar Syntax](#grammar-syntax)
+
+* [Example: Tiny Parser](#example-tiny-parser)
+
+# Requirements
 ```
 lua >= 5.1
 lpeglabel >= 1.2.0
 ```
-# 2. Syntax
+# Syntax
 
 ### compile
 
@@ -97,7 +97,7 @@ Also, if the `noast` option is enabled when compiling the grammar, the function 
 
 Example of all functions: a parser for the Tiny language.
 
-# 3. Grammar Syntax
+# Grammar Syntax
 
 The grammar used for this tool is described using a PEG-like syntax, that is identical to the one provided by the [re](http://www.inf.puc-rio.br/~roberto/lpeg/re.html) module, with an extension of labelled failures provided by [relabel](https://github.com/sqmedeiros/lpeglabel) module (except numbered labels). That is, all grammars that work with relabel should work with parser-gen as long as numbered error labels are not used, as they are not supported by parser-gen.
 
@@ -170,7 +170,7 @@ HELPER <- ';' / 'end' / SKIP -- etc
 SYNC <- (!HELPER .)* SKIP? -- we can consume the spaces after syncing with them as well
 ```
 
-# 4. Example: Tiny parser
+# Example: Tiny parser
 
 Below is the full code from *parsers/tiny-parser-nocap.lua*:
 ```lua
