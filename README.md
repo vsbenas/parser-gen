@@ -31,7 +31,7 @@ grammar = parser-gen.compile(input,definitions [, errorgen, noast])
 ```
 *Arguments*:
 
-`input` - input string, for example " 'a'* ". For complete syntax see grammar section.
+`input` - input string, for example `'a'*`. For complete syntax see grammar section.
 
 `definitions` - table of custom functions and definitions used inside the grammar, for example {equals=equals}, where equals is a function.
 
