@@ -157,6 +157,11 @@ SKIP <- %s / %nl
 ```
 This rule can be extended to contain semicolons `';'`, comments, or any other patterns that the parser can safely ignore.
 
+Character skipping can be disabled by using:
+```lua
+SKIP <- ''
+```
+
 #### SYNC
 
 This rule specifies the general recovery expression both for custom errors and automatically generated ones. By default:
@@ -167,9 +172,13 @@ SYNC <- .? (!SKIP .)*
 For some programming languages it might be useful to skip to a semicolon or a keyword, since they usually indicate the end of a statement, so SYNC could be something like:
 ```lua
 HELPER <- ';' / 'end' / SKIP -- etc
-SYNC <- (!HELPER .)* SKIP? -- we can consume the spaces after syncing with them as well
+SYNC <- (!HELPER .)* SKIP* -- we can consume the spaces after syncing with them as well
 ```
 
+Recovery grammars can be disabled by using:
+```lua
+SYNC <- ''
+```
 # Example: Tiny parser
 
 Below is the full code from *parsers/tiny-parser-nocap.lua*:
