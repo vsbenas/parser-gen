@@ -1,5 +1,5 @@
 package = "parser-gen"
-version = "1.0-5"
+version = "1.0-6"
 source = {
    url = "git://github.com/vsbenas/parser-gen",
    tag = "1.0"
@@ -16,13 +16,12 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-		relabel = "relabel.lua",
-		parsergen = "parser-gen.lua",
-		pegparser = "peg-parser.lua",
-		stack = "stack.lua",
-		equals = "equals.lua",
-		errorgen = "errorgen.lua"
+		["parser-gen"] = "parser-gen.lua",
+		["peg-parser"] = "peg-parser.lua",
+		["stack"] = "stack.lua",
+		["equals"] = "equals.lua",
+		["errorgen"] = "errorgen.lua",
 		
-   
+
    }
 }
