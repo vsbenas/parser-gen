@@ -361,11 +361,19 @@ local function build(ast, defs)
 		definitions = defs
 	end
 	if isgrammar(ast) then
-		
 		return traverse(ast)
 	else
+		SKIP = (Predef.space + Predef.nl)
+		skipspaces = true
+		SYNC = nil
+		recovery = true
+		SYNC = defaultsync(SKIP)
 		currentrule = ''
-		return SKIP^0 * traverse(ast) -- input is not a grammar - skip spaces by default
+		local res = SKIP ^0 * traverse(ast)
+		if buildast then
+			res = m.Ct(res)
+		end
+		return res -- input is not a grammar - skip spaces and sync by default
 	end
 end
 
