@@ -302,10 +302,13 @@ local function applyaction(action, op1, op2, labels,tokenrule)
 		end
 		return m.T(lab) -- lpeglabel
 	elseif action == "%" then
-		if Predef[op1] then
+		if definitions[op1] then
+			return definitions[op1]
+		elseif Predef[op1] then
 			return Predef[op1]
+		else
+			error("Definition for '%"..op1.."' unspecified(use second parameter of parser-gen.compile())")
 		end
-		return definitions[op1]
 	elseif action == "invert" then
 		return m.P(1) - op1
 	elseif action == "range" then
@@ -342,7 +345,11 @@ local function applyfinal(action, term, tokenterm, tokenrule)
 			return m.V(term)
 		end
 	elseif action == "func" then
-		return definitions[term]
+		if definitions[term] then
+			return definitions[term]
+		else
+			error("Definition for function '"..term.."' unspecified (use second parameter of parser-gen.compile())")
+		end
 	elseif action == "s" then -- simple string
 		return term
 	elseif action == "num" then -- numbered string
