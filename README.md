@@ -103,6 +103,63 @@ The grammar used for this tool is described using a PEG-like syntax, that is ide
 
 Since a parser generated with parser-gen automatically consumes space characters, builds ASTs and generates errors, additional extensions have been added based on the [ANTLR](http://www.antlr.org/) syntax.
 
+### Basic syntax
+
+The syntax of parser-gen grammars is somewhat similar to regex syntax. The next table summarizes the tools syntax. A p represents an arbitrary pattern; num represents a number (`[0-9]+`); name represents an identifier (`[a-zA-Z][a-zA-Z0-9_]*`).`defs` is the definitions table provided when compiling the grammar. Note that error names must be set using `setlabels()` before compiling the grammar. Constructions are listed in order of decreasing precedence.
+
+<table border="1">
+<tbody><tr><td><b>Syntax</b></td><td><b>Description</b></td></tr>
+<tr><td><code>( p )</code></td> <td>grouping</td></tr>
+<tr><td><code>'string'</code></td> <td>literal string</td></tr>
+<tr><td><code>"string"</code></td> <td>literal string</td></tr>
+<tr><td><code>[class]</code></td> <td>character class</td></tr>
+<tr><td><code>.</code></td> <td>any character</td></tr>
+<tr><td><code>%name</code></td>
+  <td>pattern <code>defs[name]</code> or a pre-defined pattern</td></tr>
+<tr><td><code>name</code></td><td>non terminal</td></tr>
+<tr><td><code>&lt;name&gt;</code></td><td>non terminal</td></tr>
+<tr><td><code>%{name}</code></td> <td>error label</td></tr>
+<tr><td><code>{}</code></td> <td>position capture</td></tr>
+<tr><td><code>{ p }</code></td> <td>simple capture</td></tr>
+<tr><td><code>{: p :}</code></td> <td>anonymous group capture</td></tr>
+<tr><td><code>{:name: p :}</code></td> <td>named group capture</td></tr>
+<tr><td><code>{~ p ~}</code></td> <td>substitution capture</td></tr>
+<tr><td><code>{| p |}</code></td> <td>table capture</td></tr>
+<tr><td><code>=name</code></td> <td>back reference
+</td></tr>
+<tr><td><code>p ?</code></td> <td>optional match</td></tr>
+<tr><td><code>p *</code></td> <td>zero or more repetitions</td></tr>
+<tr><td><code>p +</code></td> <td>one or more repetitions</td></tr>
+<tr><td><code>p^num</code></td> <td>exactly <code>n</code> repetitions</td></tr>
+<tr><td><code>p^+num</code></td>
+      <td>at least <code>n</code> repetitions</td></tr>
+<tr><td><code>p^-num</code></td>
+      <td>at most <code>n</code> repetitions</td></tr>
+<tr><td><code>p^name</code></td> <td>match p or throw error label name.</td></tr>
+<tr><td><code>p -&gt; 'string'</code></td> <td>string capture</td></tr>
+<tr><td><code>p -&gt; "string"</code></td> <td>string capture</td></tr>
+<tr><td><code>p -&gt; num</code></td> <td>numbered capture</td></tr>
+<tr><td><code>p -&gt; name</code></td> <td>function/query/string capture
+equivalent to <code>p / defs[name]</code></td></tr>
+<tr><td><code>p =&gt; name</code></td> <td>match-time capture
+equivalent to <code>lpeg.Cmt(p, defs[name])</code></td></tr>
+<tr><td><code>&amp; p</code></td> <td>and predicate</td></tr>
+<tr><td><code>! p</code></td> <td>not predicate</td></tr>
+<tr><td><code>p1 p2</code></td> <td>concatenation</td></tr>
+<tr><td><code>p1 //{name [, name, ...]} p2</code></td> <td>specifies recovery pattern p2 for p1
+when one of the labels is thrown</td></tr>	
+<tr><td><code>p1 / p2</code></td> <td>ordered choice</td></tr>
+<tr><td>(<code>name &lt;- p</code>)<sup>+</sup></td> <td>grammar</td></tr>
+</tbody></table>
+
+
+The grammar below is used to match balanced parenthesis
+
+```lua
+balanced <- "(" ([^()] / balanced)* ")" 
+```
+For more examples check out the [re](http://www.inf.puc-rio.br/~roberto/lpeg/re.html) page, see the Tiny parser below or the [Lua parser](https://github.com/vsbenas/parser-gen/blob/master/parsers/lua-parser.lua) writen with this tool.
+
 ### Error labels
 
 Error labels are provided by the relabel function %{errorname} (errorname must follow `[A-Za-z][A-Za-z0-9_]*` format). Usually we use error labels in a syntax like `'a' ('b' / %{errB}) 'c'`, which throws an error label if `'b'` is not matched. This syntax is quite complicated so an additional syntax is allowed `'a' 'b'^errB 'c'`, which allows cleaner description of grammars. Note: all errors must be defined in a table using parser-gen.setlabels() before compiling and parsing the grammar.
