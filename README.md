@@ -197,15 +197,15 @@ local grammar = pg.compile([[
 	statement 		<- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
 	ifstmt 			<- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
 	elsestmt		<- ('else' stmtsequence)
-	repeatstmt		<-  'repeat' stmtsequence 'until' exp 
+	repeatstmt		<- 'repeat' stmtsequence 'until' exp 
 	assignstmt		<- IDENTIFIER ':=' exp 
-	readstmt		<-  'read'  IDENTIFIER 
-	writestmt		<-  'write' exp 
-	exp 			<-  simpleexp (COMPARISONOP simpleexp)*
+	readstmt		<- 'read'  IDENTIFIER 
+	writestmt		<- 'write' exp 
+	exp 			<- simpleexp (COMPARISONOP simpleexp)*
 	COMPARISONOP		<- '<' / '='
-	simpleexp		<-  term (ADDOP term)* 
+	simpleexp		<- term (ADDOP term)* 
 	ADDOP			<- [+-]
-	term			<-  factor (MULOP factor)*
+	term			<- factor (MULOP factor)*
 	MULOP			<- [*/]
 	factor			<- '(' exp ')' / NUMBER / IDENTIFIER
 
