@@ -24,14 +24,14 @@ lpeglabel >= 1.2.0
 
 ### compile
 
-All grammars have to be compiled using *compile*:
+This function generates a PEG parser from the grammar description.
 
 ```lua
 grammar = parser-gen.compile(input,definitions [, errorgen, noast])
 ```
 *Arguments*:
 
-`input` - input string, for example `'a'*`. For complete syntax see grammar section.
+`input` - A string containing a PEG grammar description. For complete PEG syntax see the grammar section of this document.
 
 `definitions` - table of custom functions and definitions used inside the grammar, for example {equals=equals}, where equals is a function.
 
@@ -101,7 +101,7 @@ Example of all functions: a parser for the Tiny language.
 
 The grammar used for this tool is described using a PEG-like syntax, that is identical to the one provided by the [re](http://www.inf.puc-rio.br/~roberto/lpeg/re.html) module, with an extension of labelled failures provided by [relabel](https://github.com/sqmedeiros/lpeglabel) module (except numbered labels). That is, all grammars that work with relabel should work with parser-gen as long as numbered error labels are not used, as they are not supported by parser-gen.
 
-Since this tool automatically consumes SPACE characters, builds ASTs and generates errors, additional extensions have been added based on the [ANTLR](http://www.antlr.org/) syntax.
+Since a parser generated with parser-gen automatically consumes space characters, builds ASTs and generates errors, additional extensions have been added based on the [ANTLR](http://www.antlr.org/) syntax.
 
 ### Error labels
 
@@ -168,6 +168,7 @@ This rule specifies the general recovery expression both for custom errors and a
 ```lua
 SYNC <- .? (!SKIP .)*
 ```
+The default SYNC rule consumes any characters until the next character matched by SKIP, usually a space or a newline. That means, if some statement in a program is invalid, the parser will continue parsing after a space or a newline character.
 
 For some programming languages it might be useful to skip to a semicolon or a keyword, since they usually indicate the end of a statement, so SYNC could be something like:
 ```lua
@@ -183,7 +184,6 @@ SYNC <- ''
 
 Below is the full code from *parsers/tiny-parser-nocap.lua*:
 ```lua
-package.path = package.path .. ";../?.lua"
 local pg = require "parser-gen"
 local peg = require "peg-parser"
 local errs = {errMissingThen = "Missing Then"} -- one custom error
@@ -192,29 +192,29 @@ pg.setlabels(errs)
 
 local grammar = pg.compile([[
 
-  program <- stmtsequence !. 
-  stmtsequence <- statement (';' statement)* 
-  statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
-  ifstmt <- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
-  elsestmt <- ('else' stmtsequence)
-  repeatstmt <-  'repeat' stmtsequence 'until' exp 
-  assignstmt <- IDENTIFIER ':=' exp 
-  readstmt <-  'read'  IDENTIFIER 
-  writestmt <-  'write' exp 
-  exp <-  simpleexp (COMPARISONOP simpleexp)*
-  COMPARISONOP <- '<' / '='
-  simpleexp <-  term (ADDOP term)* 
-  ADDOP <- [+-]
-  term <-  factor (MULOP factor)*
-  MULOP <- [*/]
-  factor <- '(' exp ')' / NUMBER / IDENTIFIER
+	program			<- stmtsequence !. 
+	stmtsequence	<- statement (';' statement)* 
+	statement 		<- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
+	ifstmt 			<- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
+	elsestmt		<- ('else' stmtsequence)
+	repeatstmt		<-  'repeat' stmtsequence 'until' exp 
+	assignstmt		<- IDENTIFIER ':=' exp 
+	readstmt		<-  'read'  IDENTIFIER 
+	writestmt		<-  'write' exp 
+	exp 			<-  simpleexp (COMPARISONOP simpleexp)*
+	COMPARISONOP	<- '<' / '='
+	simpleexp		<-  term (ADDOP term)* 
+	ADDOP			<- [+-]
+	term			<-  factor (MULOP factor)*
+	MULOP			<- [*/]
+	factor			<- '(' exp ')' / NUMBER / IDENTIFIER
 
-  NUMBER <- '-'? [0-9]+
-  KEYWORDS <- 'if' / 'repeat' / 'read' / 'write' / 'then' / 'else' / 'end' / 'until' 
-  RESERVED <- KEYWORDS ![a-zA-Z]
-  IDENTIFIER <- !RESERVED [a-zA-Z]+
-  HELPER <- ';' / %nl / %s / KEYWORDS / !.
-  SYNC <- (!HELPER .)*
+	NUMBER			<- '-'? [0-9]+
+	KEYWORDS		<- 'if' / 'repeat' / 'read' / 'write' / 'then' / 'else' / 'end' / 'until' 
+	RESERVED		<- KEYWORDS ![a-zA-Z]
+	IDENTIFIER		<- !RESERVED [a-zA-Z]+
+	HELPER			<- ';' / %nl / %s / KEYWORDS / !.
+	SYNC			<- (!HELPER .)*
 
 ]], _, true)
 local errors = 0
