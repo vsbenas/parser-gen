@@ -193,7 +193,7 @@ pg.setlabels(errs)
 local grammar = pg.compile([[
 
 	program			<- stmtsequence !. 
-	stmtsequence	<- statement (';' statement)* 
+	stmtsequence		<- statement (';' statement)* 
 	statement 		<- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
 	ifstmt 			<- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
 	elsestmt		<- ('else' stmtsequence)
@@ -202,7 +202,7 @@ local grammar = pg.compile([[
 	readstmt		<-  'read'  IDENTIFIER 
 	writestmt		<-  'write' exp 
 	exp 			<-  simpleexp (COMPARISONOP simpleexp)*
-	COMPARISONOP	<- '<' / '='
+	COMPARISONOP		<- '<' / '='
 	simpleexp		<-  term (ADDOP term)* 
 	ADDOP			<- [+-]
 	term			<-  factor (MULOP factor)*
