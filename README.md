@@ -67,7 +67,7 @@ Learn more about special rules in the grammar section.
 
 ### parse
 
-The main operation of the tool is *parse*:
+This operation attempts to match a grammar to the given input.
 
 ```lua
 result, errors = parser-gen.parse(input, grammar [, errorfunction])
