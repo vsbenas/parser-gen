@@ -2,7 +2,7 @@
 
 A Lua parser generator that makes it possible to describe grammars in a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) syntax. The tool will parse a given input using a provided grammar and if the matching is successful produce an AST as an output with the captured values using [Lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/). If the matching fails, labelled errors can be used in the grammar to indicate failure position, and recovery grammars are generated to continue parsing the input using [LpegLabel](https://github.com/sqmedeiros/lpeglabel). The tool can also automatically generate error labels and recovery grammars for LL(1) grammars.
 
-parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed together with my mentor [@sqmedeiros](https://github.com/sqmedeiros) from [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here](https://parsergen.blogspot.com/2017/08/parser-generator-based-on-lpeglabel.html).
+parser-gen is a [GSoC 2017](https://developers.google.com/open-source/gsoc/) project, and was completed with the help of my mentor [@sqmedeiros](https://github.com/sqmedeiros) from [LabLua](http://www.lua.inf.puc-rio.br/). A blog documenting the progress of the project can be found [here](https://parsergen.blogspot.com/2017/08/parser-generator-based-on-lpeglabel.html).
 
 ---
 # Table of contents
