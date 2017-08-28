@@ -5,40 +5,42 @@ local errs = {errMissingThen = "Missing Then"}
 pg.setlabels(errs)
 
 
-local grammar = pg.compile [[
+local grammar = pg.compile([[
 
-  program <- stmtsequence !.
-  stmtsequence <- {| statement (';' statement)* |}
+  program <- stmtsequence !. 
+  stmtsequence <- statement (';' statement)* 
   statement <- ifstmt / repeatstmt / assignstmt / readstmt / writestmt
-  ifstmt <- {| {:stmt: 'if' :} {:exp: exp:} 'then'^errMissingThen {:action: stmtsequence:} ('else' {:else: stmtsequence:})? 'end' |}
-  repeatstmt <- {| {:stmt:'repeat':} {:action: stmtsequence:} 'until' {:until: exp :} |}
-  assignstmt <- {| {:stmt:''->'assign' :} {:id: IDENTIFIER :} ':=' {:exp: exp :} |}
-  readstmt <- {| {:stmt:'read':} {:id: IDENTIFIER :} |}
-  writestmt <- {| {:stmt:'write':} {:exp: exp :} |}
-  exp <- {| simpleexp ({COMPARISONOP} simpleexp)+ |} / simpleexp
+  ifstmt <- 'if' exp 'then'^errMissingThen stmtsequence elsestmt? 'end' 
+  elsestmt <- ('else' stmtsequence)
+  repeatstmt <-  'repeat' stmtsequence 'until' exp 
+  assignstmt <- IDENTIFIER ':=' exp 
+  readstmt <-  'read'  IDENTIFIER 
+  writestmt <-  'write' exp 
+  exp <-  simpleexp (COMPARISONOP simpleexp)*
   COMPARISONOP <- '<' / '='
-  simpleexp <- {| term ({ADDOP} term)+ |} / term
+  simpleexp <-  term (ADDOP term)* 
   ADDOP <- [+-]
-  term <- {| factor ({MULOP} factor)+ |} / factor
+  term <-  factor (MULOP factor)*
   MULOP <- [*/]
-  factor <- '(' exp ')' / {NUMBER} / {IDENTIFIER}
+  factor <- '(' exp ')' / NUMBER / IDENTIFIER
 
   NUMBER <- '-'? [0-9]+
   KEYWORDS <- 'if' / 'repeat' / 'read' / 'write' / 'then' / 'else' / 'end' / 'until' 
   RESERVED <- KEYWORDS ![a-zA-Z]
   IDENTIFIER <- !RESERVED [a-zA-Z]+
-  HELPER <- ';' / '\n' / '\r'
+  HELPER <- ';' / %nl / %s / KEYWORDS / !.
   SYNC <- (!HELPER .)*
 
-]]
-local errs = 0
+]], _, true)
+local errors = 0
 local function printerror(desc,line,col,sfail,trec)
-	errs = errs+1
-	print("Error #"..errs..": "..desc.." before '"..sfail.."' on line "..line.."(col "..col..")")
+	errors = errors+1
+	print("Error #"..errors..": "..desc.." on line "..line.."(col "..col..")")
 end
 
 
 local function parse(input)
+	errors = 0
 	result, errors = pg.parse(input,grammar,printerror)
 	return result, errors
 end
@@ -46,7 +48,7 @@ end
 if arg[1] then	
 	-- argument must be in quotes if it contains spaces
 	res, errs = parse(arg[1])
-	peg.print_r(res)
+	peg.print_t(res)
 	peg.print_r(errs)
 end
 local ret = {parse=parse}
