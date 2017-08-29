@@ -130,7 +130,7 @@ local gram = [=[
 			/ class
 			/ defined
 			/ {| {:action: '%'->'label':} ('{' / %{ExpNameOrLab})  S ({:op1: label:} / %{ExpLab1})  S ('}' / %{MisClose7})  |}
-			/ {| {:action: '{:'->'gcap':} {:op2: defname:} ':' ({:op1:exp:} / %{ExpPatt5}) (':}' / %{MisClose2}) |}
+			/ {| {:action: '{:'->'gcap':} {:op2: defname:} ':' !'}' ({:op1:exp:} / %{ExpPatt5}) (':}' / %{MisClose2}) |}
 			/ {| {:action: '{:'->'gcap':} ({:op1:exp:} / %{ExpPatt5}) (':}' / %{MisClose2})  |}
 			/ {| {:action: '='->'bref':} ({:op1: defname:} / %{ExpName2}) |}
 			/ {| {:action: '{}'->'poscap':} |}
@@ -174,6 +174,7 @@ local gram = [=[
 local defs = {foldtable=foldtable, concat=concat}
 peg.gram = gram
 peg.defs = defs
+peg.labels = labels
 local p = re.compile ( gram, defs)
 
 

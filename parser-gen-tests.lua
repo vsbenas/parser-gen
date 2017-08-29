@@ -141,18 +141,19 @@ assert(errs[1]["msg"] == "Expected C")
 
 
 -- SELF-DESCRIPTION
-
+pg.setlabels(peg.labels)
 gram = pg.compile(peg.gram, peg.defs,_,true)
 res1, errs = pg.parse(peg.gram,gram)
 assert(res1) -- parse succesful
 
-
+--[[ this test is invalid since tool added ^LABEL syntax
 r = re.compile(peg.gram,peg.defs)
 res2 = r:match(peg.gram)
 
 --peg.print_r(res2)
 
 assert(equals(res1, res2))
+]]--
 
 
 
