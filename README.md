@@ -239,7 +239,7 @@ SYNC <- ''
 ```
 # Example: Tiny parser
 
-Below is the full code from *parsers/tiny-parser-nocap.lua*:
+Below is the full code from *parsers/tiny-parser.lua*:
 ```lua
 local pg = require "parser-gen"
 local peg = require "peg-parser"
