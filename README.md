@@ -27,7 +27,8 @@ lpeglabel >= 1.2.0
 This function generates a PEG parser from the grammar description.
 
 ```lua
-grammar = parser-gen.compile(input,definitions [, errorgen, noast])
+local pg = require "parser-gen"
+grammar = pg.compile(input,definitions [, errorgen, noast])
 ```
 *Arguments*:
 
@@ -47,7 +48,7 @@ grammar = parser-gen.compile(input,definitions [, errorgen, noast])
 
 If custom error labels are used, the function *setlabels* allows setting their description (and custom recovery pattern):
 ```lua
-parser-gen.setlabels(t)
+pg.setlabels(t)
 ```
 Example table of a simple error and one with a custom recovery expression:
 ```lua
@@ -56,7 +57,7 @@ local t = {
 	missingEnd = "Missing 'end' in if expression",
 	missingThen = {"Missing 'then' in if expression", " (!stmt .)* "} -- a custom recovery pattern
 }
-parser-gen.setlabels(t)
+pg.setlabels(t)
 ```
 If the recovery pattern is not set, then the one specified by the rule SYNC will be used. It is by default set to:
 ```lua
@@ -70,7 +71,7 @@ Learn more about special rules in the grammar section.
 This operation attempts to match a grammar to the given input.
 
 ```lua
-result, errors = parser-gen.parse(input, grammar [, errorfunction])
+result, errors = pg.parse(input, grammar [, errorfunction])
 ```
 *Arguments*:
 
@@ -169,36 +170,36 @@ Error labels are provided by the relabel function %{errorname} (errorname must f
 Non-terminals with names in all capital letters, i.e. `[A-Z]+`, are considered tokens and are treated as a single object in parsing. That is, the whole string matched by a token is captured in a single AST entry and space characters are not consumed. Consider two examples:
 ```lua
 -- a token non-terminal
-grammar = parser-gen.compile [[
+grammar = pg.compile [[
 	WORD <- [A-Z]+
 ]]
-res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
+res, _ = pg.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
 ```
 ```lua
 -- a non-token non-terminal
-grammar = parser-gen.compile [[
+grammar = pg.compile [[
 	word <- [A-Z]+
 ]]
-res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="word", "A", "A", "A"}
+res, _ = pg.parse("AA A", grammar) -- outputs {rule="word", "A", "A", "A"}
 ```
 
 ### Fragments
 
 If a token definition is followed by a `fragment` keyword, then the parser does not build an AST entry for that token. Essentially, these rules are used to simplify grammars without building unnecessarily complicated ASTS. Example of `fragment` usage:
 ```lua
-grammar = parser-gen.compile [[
+grammar = pg.compile [[
 	WORD <- LETTER+
 	fragment LETTER <- [A-Z]
 ]]
-res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
+res, _ = pg.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
 ```
 Without using `fragment`:
 ```lua
-grammar = parser-gen.compile [[
+grammar = pg.compile [[
 	WORD <- LETTER+
 	LETTER <- [A-Z]
 ]]
-res, _ = parser-gen.parse("AA A", grammar) -- outputs {rule="WORD", {rule="LETTER", "A"}, {rule="LETTER", "A"}}
+res, _ = pg.parse("AA A", grammar) -- outputs {rule="WORD", {rule="LETTER", "A"}, {rule="LETTER", "A"}}
 
 ```
 
