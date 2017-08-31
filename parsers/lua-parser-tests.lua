@@ -54,59 +54,7 @@ end
 assert(errs == 0)
 
 print("\n\n Test suite files compiled successfully")
-local filenames2 = {
---[['analyze.lua',
-'argparse.lua',
-'builtin_standards.lua',
-'cache.lua',
-'check.lua',
-'config.lua',
-'core_utils.lua',
-'detect_globals.lua',
-'expand_rockspec.lua',
-'filter.lua',]]--
-'format.lua',
-'fs.lua',
-'globbing.lua',
-'init.lua',
-'inline_options.lua',
-'lexer.lua',
-'lfs_fs.lua',
-'linearize.lua',
-'love_standard.lua',
-'lua_fs.lua',
-'main.lua',
-'multithreading.lua',
-'ngx_standard.lua',
-'options.lua',
-'parser.lua',
-'reachability.lua',
-'standards.lua',
-'utils.lua',
-'version.lua',
-'whitespace.lua',
-}
-errs = 0
-print("\n\n [[ PARSING LUACHECK FILES ]] \n\n")
-for k,v in ipairs(filenames2) do
-	local filename = "luacheck/"..v
-	local f = assert(io.open(filename, "r"))
 
-	local t = f:read("*all")
-
-	local res, err = lua.parse(t)
-	local s = "OK"
-	if not res then s = "FAIL" end -- only check if succesful since grammar ensures whole file is read
-	print("Testing file '"..v.."': ["..s.."]")
-	if not res then
-		errs = errs + 1
-		print("Error: "..err[1]["msg"])
-	end
-	f:close()
-end
-assert(errs == 0)
-
-print("\n\n Test suite files compiled successfully")
 
 print("\n\n [[ TESTING ERROR LABELS ]] ")
 local pr = peg.print_r
