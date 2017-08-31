@@ -156,7 +156,7 @@ local grammar = pg.compile([==[
 	parlist		<-	namelist (',' '...'^ErrParList)? / '...'
 	tableconstructor<-	'{' fieldlist? '}'^ErrCBraceTable
 	fieldlist	<-	field (fieldsep field)* fieldsep?
-	field		<-	'[' exp^ErrExprFKey ']'^ErrCBracketFKey '='^ErrEqField exp^ErrExprField /
+	field		<-	'[' ![[=] exp^ErrExprFKey ']'^ErrCBracketFKey '='^ErrEqField exp^ErrExprField /
 						NAME '=' exp  /
 						exp 
 	fieldsep	<-	',' / ';'
