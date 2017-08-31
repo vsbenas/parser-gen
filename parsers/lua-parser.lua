@@ -102,6 +102,7 @@ local grammar = pg.compile([==[
 	block		<-	stat* retstat?
 	stat		<-	';' /
 					functioncall /
+					varlist '='^ErrEqAssign explist^ErrEListAssign /
 					'break' /
 					'goto' NAME^ErrGoto /
 					'do' block 'end'^ErrEndDo  /
@@ -109,9 +110,9 @@ local grammar = pg.compile([==[
 					'repeat' block 'until'^ErrUntilRep exp^ErrExprRep /
 					'if' exp^ErrExprIf 'then'^ErrThenIf block ('elseif' exp^ErrExprEIf 'then'^ErrThenEIf  block)* ('else' block)? 'end'^ErrEndIf /
 					'for' (forNum / forIn)^ErrForRange 'do'^ErrDoFor  block 'end'^ErrEndFor /
+					
 					'function' funcname^ErrFuncName funcbody / 
-					'local' (localFunc / localAssign)^ErrDefLocal /
-					varlist '='^ErrEqAssign explist^ErrEListAssign /
+					'local' (localAssign / localFunc)^ErrDefLocal /
 					label /
 					!blockEnd %{ErrInvalidStat}
 	blockEnd	<-	'return' / 'end' / 'elseif' / 'else' / 'until' / !.
@@ -131,9 +132,11 @@ local grammar = pg.compile([==[
 					number /
 					string /
 					'...' /
-					functiondef /
 					prefixexp /
-					tableconstructor 
+					tableconstructor /
+					'function' funcbody
+
+
 	expOps		<-	operatorPower exp^ErrPowExpr / -- assoc= right
 					operatorMulDivMod exp^ErrMulExpr / -- left
 					operatorAddSub exp^ErrAddExpr /
@@ -151,12 +154,11 @@ local grammar = pg.compile([==[
 	nameAndArgs	<-	(':' !':' NAME^ErrNameMeth args^ErrMethArgs) /
 					args
 	args		<-	'(' explist? ')'^ErrCParenArgs / tableconstructor / string
-	functiondef	<-	'function' funcbody
 	funcbody	<-	'('^ErrOParenPList parlist? ')'^ErrCParenPList block 'end'^ErrEndFunc
 	parlist		<-	namelist (',' '...'^ErrParList)? / '...'
 	tableconstructor<-	'{' fieldlist? '}'^ErrCBraceTable
 	fieldlist	<-	field (fieldsep field)* fieldsep?
-	field		<-	'[' ![[=] exp^ErrExprFKey ']'^ErrCBracketFKey '='^ErrEqField exp^ErrExprField /
+	field		<-	!OPEN '[' exp^ErrExprFKey ']'^ErrCBracketFKey '='^ErrEqField exp^ErrExprField /
 						NAME '=' exp  /
 						exp 
 	fieldsep	<-	',' / ';'
@@ -173,7 +175,9 @@ local grammar = pg.compile([==[
 	string		<-	NORMALSTRING / CHARSTRING / LONGSTRING    
 	-- lexer
 	fragment
-	RESERVED	<-	KEYWORDS ![a-zA-Z_0-9]
+	RESERVED	<-	KEYWORDS !IDREST
+	fragment
+	IDREST		<- 	[a-zA-Z_0-9]
 	fragment
 	KEYWORDS	<-	'and' / 'break' / 'do' / 'elseif' / 'else' / 'end' /
 					'false' / 'for' / 'function' / 'goto' / 'if' / 'in' /
@@ -190,11 +194,11 @@ local grammar = pg.compile([==[
 	fragment 
 	OPEN 		<-	'[' {:openEq: EQUALS :}  '[' %nl?
 	fragment 
-	CLOSE 		<-	']' {:closeEq: EQUALS :} ']'
+	CLOSE 		<-	']' {EQUALS} ']'
 	fragment 
 	EQUALS 		<-	'='*
 	fragment 
-	CLOSEEQ 	<-	CLOSE ((=openEq =closeEq) => equals)
+	CLOSEEQ 	<-	(CLOSE =openEq) => equals
 
 	INT		<-	DIGIT+
 	HEX		<-	'0' [xX] HEXDIGIT+^ErrDigitHex
@@ -243,7 +247,7 @@ local grammar = pg.compile([==[
 	SKIP		<-	%nl / %s / COMMENT / LINE_COMMENT / SHEBANG	 
 	fragment
 	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
-	SYNC		<-	(!HELPER !SKIP .)* (SKIP)* -- either sync to reserved keyword or skip characters and consume them
+	SYNC		<-	((!HELPER !SKIP .)+ / .?) SKIP* -- either sync to reserved keyword or skip characters and consume them
 			
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
