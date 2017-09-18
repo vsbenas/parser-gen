@@ -126,25 +126,27 @@ local grammar = pg.compile([==[
 	varlist		<-	var (',' var^ErrVarList)*
 	namelist	<-	NAME (',' NAME)*
 	explist		<-	exp (',' exp^ErrExprList )*
-	exp		<-	expTokens expOps?
+	
+	exp			<-	expOR
+	expOR		<-	expAND (operatorOr expAND^ErrOrExpr)*
+	expAND		<- 	expREL (operatorAnd expREL^ErrAndExpr)*
+	expREL		<-	expBIT (operatorComparison expBIT^ErrRelExpr)*
+	expBIT		<- 	expCAT (operatorBitwise expCAT^ErrBitwiseExpr)*
+	expCAT		<- 	expADD (operatorStrcat expADD^ErrConcatExpr)* -- associate to the right
+	expADD		<- 	expMUL (operatorAddSub expMUL^ErrAddExpr)*
+	expMUL		<-	expUNA (operatorMulDivMod expUNA^ErrMulExpr)*
+	expUNA		<-	operatorUnary expUNA^ErrUnaryExpr /
+					expPOW
+	expPOW		<- 	expTokens (operatorPower expUNA^ErrPowExpr)* -- associate to the right
+	
 	expTokens	<-	'nil' / 'false' / 'true' /
-					operatorUnary exp^ErrUnaryExpr /
 					number /
 					string /
 					'...' /
-					prefixexp /
-					tableconstructor /
-					'function' funcbody
+					'function' funcbody /
+					tableconstructor  /
+					prefixexp 
 
-
-	expOps		<-	operatorPower exp^ErrPowExpr / -- assoc= right
-					operatorMulDivMod exp^ErrMulExpr / -- left
-					operatorAddSub exp^ErrAddExpr /
-					operatorStrcat exp^ErrConcatExpr / -- right
-					operatorComparison exp^ErrRelExpr /
-					operatorBitwise exp^ErrBitwiseExpr /
-					operatorAnd exp^ErrAndExpr /
-					operatorOr exp^ErrOrExpr
 	prefixexp	<-	varOrExp nameAndArgs*
 	functioncall	<-	varOrExp nameAndArgs+
 	varOrExp	<-	var / brackexp
@@ -165,11 +167,11 @@ local grammar = pg.compile([==[
 	operatorOr	<-	'or'
 	operatorAnd	<-	'and'
 	operatorComparison<-	'<=' / '>=' / '~=' / '==' / '<' !'<' / '>' !'>'
-	operatorStrcat	<-	'..'
+	operatorStrcat	<-	!'...' '..'
 	operatorAddSub	<-	'+' / '-'
 	operatorMulDivMod<-	'*' / '%' / '//' / '/' 
-	operatorBitwise	<-	'&' / '|' / '~' / '<<' / '>>'
-	operatorUnary	<-	'not' / '#' / '-' / '~'
+	operatorBitwise	<-	'&' / '|' / !'~=' '~' / '<<' / '>>'
+	operatorUnary	<-	'not' / '#' / '-' / !'~=' '~'
 	operatorPower	<-	'^'
 	number		<-	FLOAT / HEX_FLOAT / HEX / INT
 	string		<-	NORMALSTRING / CHARSTRING / LONGSTRING    
@@ -185,9 +187,9 @@ local grammar = pg.compile([==[
 					'then' / 'true' / 'until' / 'while'
 	NAME		<-	!RESERVED [a-zA-Z_] [a-zA-Z_0-9]*
 	fragment
-	NORMALSTRING	<-	'"' ( ESC / [^"\] )* '"'^ErrQuote
+	NORMALSTRING	<-	'"' {( ESC / [^"\] )*} '"'^ErrQuote
 	fragment
-	CHARSTRING	<-	"'" ( ESC / [^\'] )* "'"^ErrQuote
+	CHARSTRING	<-	"'" {( ESC / [^\'] )*} "'"^ErrQuote
 	fragment
 	LONGSTRING	<-	(OPEN {(!CLOSEEQ .)*} CLOSE^ErrCloseLStr) -> 1 -- capture only the string
 
@@ -252,6 +254,7 @@ local grammar = pg.compile([==[
 ]==],{ equals = equals,tryprint = tryprint})
 local errnr = 1
 local function err (desc, line, col, sfail, recexp)
+if errnr > 10 then error("end") end
 	print("Syntax error #"..errnr..": "..desc.." at line "..line.."(col "..col..")")
 	errnr = errnr+1
 end
