@@ -13,7 +13,7 @@ function fixexp (...)
     exp.rule = "exp"
     exp[len].rule = "exp"
     return exp
-  else
+  else if exp[1] then
     if exp[1].rule == "expTokens" then
       return exp[1]
     else
