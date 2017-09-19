@@ -6,6 +6,34 @@ package.path = package.path .. ";../?.lua"
 local pg = require "parser-gen"
 function equals(s,i,a,b) return #a == #b end
 function tryprint(s,i,a) print(a) return true end
+function fixexp (...)
+  local exp = {...}
+  local len = #exp
+  if len > 1 then
+    exp.rule = "exp"
+    exp[len].rule = "exp"
+    return exp
+  else if exp[1] then
+    if exp[1].rule == "expTokens" then
+      return exp[1]
+    else
+      return exp[1][1]
+    end
+  end
+end
+function fold (...)
+  local exp = {...}
+  local len = #exp
+  if len > 1 then
+    local folded = { rule = "exp", fixexp(exp[1]) }
+    for i = 2, len, 2 do
+      folded = { rule = "exp", folded, exp[i], fixexp(exp[i+1]) }
+    end
+    return folded
+  else
+    return exp[1][1]
+  end
+end
 -- from  https://github.com/andremm/lua-parser/blob/master/lua-parser/parser.lua
 local labels = {
 	ErrExtra="unexpected character(s), expected EOF",
@@ -127,17 +155,16 @@ local grammar = pg.compile([==[
 	namelist	<-	NAME (',' NAME)*
 	explist		<-	exp (',' exp^ErrExprList )*
 	
-	exp			<-	expOR
-	expOR		<-	expAND (operatorOr expAND^ErrOrExpr)*
-	expAND		<- 	expREL (operatorAnd expREL^ErrAndExpr)*
-	expREL		<-	expBIT (operatorComparison expBIT^ErrRelExpr)*
-	expBIT		<- 	expCAT (operatorBitwise expCAT^ErrBitwiseExpr)*
-	expCAT		<- 	expADD (operatorStrcat expADD^ErrConcatExpr)* -- associate to the right
-	expADD		<- 	expMUL (operatorAddSub expMUL^ErrAddExpr)*
-	expMUL		<-	expUNA (operatorMulDivMod expUNA^ErrMulExpr)*
-	expUNA		<-	operatorUnary expUNA^ErrUnaryExpr /
-					expPOW
-	expPOW		<- 	expTokens (operatorPower expUNA^ErrPowExpr)* -- associate to the right
+	exp		<-	expOR -> fixexp
+	expOR		<-	(expAND (operatorOr expAND^ErrOrExpr)*) -> fold
+	expAND		<- 	(expREL (operatorAnd expREL^ErrAndExpr)*) -> fold
+	expREL		<-	(expBIT (operatorComparison expBIT^ErrRelExpr)*) -> fold
+	expBIT		<- 	(expCAT (operatorBitwise expCAT^ErrBitwiseExpr)*) -> fold
+	expCAT		<- 	(expADD (operatorStrcat expCAT^ErrConcatExpr)?) -> fixexp
+	expADD		<- 	(expMUL (operatorAddSub expMUL^ErrAddExpr)*) -> fold
+	expMUL		<-	(expUNA (operatorMulDivMod expUNA^ErrMulExpr)*) -> fold
+	expUNA		<-	((operatorUnary expUNA^ErrUnaryExpr) / expPOW) -> fixexp
+	expPOW		<- 	(expTokens (operatorPower expUNA^ErrPowExpr)?) -> fixexp
 	
 	expTokens	<-	'nil' / 'false' / 'true' /
 					number /
@@ -251,7 +278,7 @@ local grammar = pg.compile([==[
 	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
 	SYNC		<-	((!HELPER !SKIP .)+ / .?) SKIP* -- either sync to reserved keyword or skip characters and consume them
 			
-]==],{ equals = equals,tryprint = tryprint})
+]==],{ equals = equals,tryprint = tryprint, fixexp = fixexp, fold = fold })
 local errnr = 1
 local function err (desc, line, col, sfail, recexp)
 if errnr > 10 then error("end") end
