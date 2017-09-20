@@ -5,7 +5,6 @@ Based on https://github.com/antlr/grammars-v4/blob/master/lua/Lua.g4 and https:/
 package.path = package.path .. ";../?.lua"
 local pg = require "parser-gen"
 function equals(s,i,a,b) return #a == #b end
-function tryprint(s,i,a) print(a) return true end
 function fixexp (...)
   local exp = {...}
   local len = #exp
@@ -278,20 +277,15 @@ local grammar = pg.compile([==[
 	HELPER		<-	RESERVED / '(' / ')'  -- for sync expression
 	SYNC		<-	((!HELPER !SKIP .)+ / .?) SKIP* -- either sync to reserved keyword or skip characters and consume them
 			
-]==],{ equals = equals,tryprint = tryprint, fixexp = fixexp, fold = fold })
+]==],{ equals = equals, fixexp = fixexp, fold = fold })
 local errnr = 1
 local function err (desc, line, col, sfail, recexp)
-if errnr > 10 then error("end") end
 	print("Syntax error #"..errnr..": "..desc.." at line "..line.."(col "..col..")")
 	errnr = errnr+1
 end
 local function parse (input)
 	errnr = 1
-	
 	local ast, errs = pg.parse(input,grammar,err)
 	return ast, errs
 end
 return {parse=parse}
---[[
-	
---]]
