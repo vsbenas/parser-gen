@@ -1,5 +1,5 @@
 -- this function compares if two tables are equal
-function equals(o1, o2, ignore_mt)
+local function equals(o1, o2, ignore_mt)
     if o1 == o2 then return true end
     local o1Type = type(o1)
     local o2Type = type(o2)

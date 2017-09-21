@@ -289,7 +289,7 @@ end
 
 -- functions to add errors
 -- find size of table
-function getn (t)
+local function getn (t)
   local size = 0
   for _, _ in pairs(t) do
     size = size+1

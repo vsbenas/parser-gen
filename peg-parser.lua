@@ -62,10 +62,10 @@ end
 
 re.setlabels(labels)
 
-function concat(a,b)
+local function concat(a,b)
 	return a..b
 end
-function foldtable(action,t)
+local function foldtable(action,t)
 	local re
 	local first = true
 	for key,value in pairs(t) do
