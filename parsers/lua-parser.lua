@@ -29,7 +29,7 @@ function fold (...)
       folded = { rule = "exp", folded, exp[i], fixexp(exp[i+1]) }
     end
     return folded
-  else
+  elseif exp[1] then
     return exp[1][1]
   end
 end

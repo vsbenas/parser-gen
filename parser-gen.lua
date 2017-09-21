@@ -433,11 +433,11 @@ function bg.buildgrammar (ast)
 				builder[name] = traverse(rule, istokenrule)
 			end
 		end
-		if buildast and not isfragment and not isspecialthen and ((not usenode) or (usenode and isnode)) then
+		if buildast and not isfragment and not isspecialthen and ((not usenode) or (usenode and isnode)) then 
 			if istokenrule then
 				builder[name] = m.C(builder[name])
 			end
-			builder[name] = m.Ct(m.Cg(m.Cc(name),"rule") * m.Cg(m.Cp(),"pos") * builder[name])
+			builder[name] = m.Ct(m.Cg(m.Cc(name),"rule") * m.Cg(m.Cp(),"pos") * builder[name]) 
 		end
 	end
 
