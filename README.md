@@ -247,7 +247,7 @@ local peg = require "peg-parser"
 local errs = {errMissingThen = "Missing Then"} -- one custom error
 pg.setlabels(errs)
 
---warning: experimental error generation function is enabled. If the grammar isn't LL(1), set errorgen to false ]]
+--warning: experimental error generation function is enabled. If the grammar isn't LL(1), set errorgen to false
 local errorgen = true
 
 local grammar = pg.compile([[
