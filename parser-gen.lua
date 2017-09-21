@@ -400,6 +400,13 @@ local function buildrecovery(grammar)
 	return grec
 	
 end
+local usenode = false
+
+local function usenodes(val)
+	usenode = val
+end
+
+
 function bg.buildgrammar (ast)
 	local builder = {}
 	specialrules(ast, builder)
@@ -407,7 +414,12 @@ function bg.buildgrammar (ast)
 	for i, v in ipairs(ast) do
 		local istokenrule = v["token"] == "1"
 		local isfragment = v["fragment"] == "1"
-
+		local isnode = v["node"] == "1"
+		
+		if isnode and not usenodes then
+			error("Node mode disabled - please use parser-gen.usenodes(true) before compiling the grammar")
+		end
+		
 		local name = v["rulename"]
 		currentrule = name
 		local isspecial = name == "SKIP" or name == "SYNC"
@@ -421,11 +433,11 @@ function bg.buildgrammar (ast)
 				builder[name] = traverse(rule, istokenrule)
 			end
 		end
-		if buildast and not isfragment and not isspecial then
+		if buildast and not isfragment and not isspecialthen and ((not usenode) or (usenode and isnode)) then
 			if istokenrule then
 				builder[name] = m.C(builder[name])
 			end
-			builder[name] = m.Ct(m.Cg(m.Cc(name),"rule") * builder[name])
+			builder[name] = m.Ct(m.Cg(m.Cc(name),"rule") * m.Cg(m.Cp(),"pos") * builder[name])
 		end
 	end
 
@@ -562,6 +574,6 @@ end
 
 
 
-local pg = {compile=compile, setlabels=setlabels, parse=parse,follow=follow}
+local pg = {compile=compile, setlabels=setlabels, parse=parse,follow=follow, calcline = calcline, usenodes = usenodes}
 
 return pg
