@@ -364,7 +364,7 @@ local function adderrors_aux(ast,tokenrule)
 
 	if isaction(ast) then
 	
-		local act, op1, op2, labs, ret1, ret2
+		local act, op1, op2
 		act = ast["action"]
 		op1 = ast["op1"]
 		op2 = ast["op2"]
@@ -385,11 +385,11 @@ local function adderrors(t, followset)
 	TERRS = {}
 	if isgrammar(t) then 
 		for pos,val in pairs(t) do
-			currentrule = val.rulename
+			local currentrule = val.rulename
 			FOLLOW = followset[currentrule]
 			local rule = val.rule
 			local istokenrule = val.token == "1"
-			local temp = adderrors_aux(rule,istokenrule)
+			adderrors_aux(rule,istokenrule)
 		end
 	else
 		FOLLOW = followset['']

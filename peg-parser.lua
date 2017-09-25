@@ -292,7 +292,7 @@ function peg.print_t ( t )  -- for debugging
         else
             print_r_cache[tostring(t)]=true
             if (type(t)=="table") then
-				local function subprint (pos,val,ident)
+				local function subprint (pos,val,indent)
 					if (type(val)=="table") then
                         print(indent.."{")
                         sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
@@ -310,14 +310,14 @@ function peg.print_t ( t )  -- for debugging
                     end
 				end
 				if t["rule"] then 
-					subprint("rule",t["rule"],ident)
+					subprint("rule",t["rule"],indent)
 				end
 				if t["pos"] then
-					subprint("pos",t["pos"],ident)
+					subprint("pos",t["pos"],indent)
 				end
                 for pos,val in pairs(t) do
 					if pos ~= "rule" and pos ~= "pos" then
-						subprint(pos,val,ident)
+						subprint(pos,val,indent)
 					end
                 end
             else
