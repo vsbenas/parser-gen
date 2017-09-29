@@ -352,17 +352,9 @@ local function specialrules(t, builder)
 	end
 end
 
--- from relabel.lua module
-local function calcline (s, i)
-  if i == 1 then return 1, 1 end
-  local rest, line = s:sub(1,i):gsub("[^\n]*\n", "")
-  local col = #rest
-  return 1 + line, col ~= 0 and col or 1
-end
-
 local function recorderror(position,label)
 	-- call error function here
-	local line, col = calcline(subject, position)
+	local line, col = peg.calcline(subject, position)
 	local desc
 	if label == 0 then
 		desc = "Syntax error"
@@ -574,6 +566,6 @@ end
 
 
 
-local pg = {compile=compile, setlabels=setlabels, parse=parse,follow=follow, calcline = calcline, usenodes = usenodes}
+local pg = {compile=compile, setlabels=setlabels, parse=parse,follow=follow, calcline = peg.calcline, usenodes = usenodes}
 
 return pg

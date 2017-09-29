@@ -328,4 +328,7 @@ function peg.print_t ( t )  -- for debugging
     sub_print_r(t,"")
 end
 
+function peg.calcline(subject, pos)
+	return re.calcline(subject,pos)
+end
 return peg
