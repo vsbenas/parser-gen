@@ -95,8 +95,29 @@ result, errors = pg.parse(input,grammar,printerror)
 If the parse is succesful, the function returns an abstract syntax tree containing the captures `result` and a table of any encountered `errors`. If the parse was unsuccessful, `result` is going to be **nil**.
 Also, if the `noast` option is enabled when compiling the grammar, the function will then produce the longest match length or any custom captures used.
 
+### calcline
 
-Example of all functions: a parser for the Tiny language.
+Calculates line and column information regarding position i of the subject (exported from the relabel module).
+
+```lua
+line, col = pg.calcline(subject, position)
+```
+*Arguments*:
+
+`subject` - subject string
+
+`position` - position inside the string, for example, the one given by automatic AST generation.
+
+### usenodes
+
+When AST generation is enabled, this function will enable the "node" mode, where only rules tagged with a `node` prefix will generate AST entries. Must be used before compiling the grammar.
+
+```lua
+pg.usenodes(value)
+```
+*Arguments*:
+
+`value` - a boolean value that enables or disables this function
 
 # Grammar Syntax
 
@@ -203,6 +224,16 @@ res, _ = pg.parse("AA A", grammar) -- outputs {rule="WORD", {rule="LETTER", "A"}
 
 ```
 
+### Nodes
+
+When node mode is enabled using `pg.usenodes(true)` only rules prefixed with a `node` keyword will generate AST entries:
+```lua
+grammar = pg.compile [[
+	node WORD <- LETTER+
+	LETTER <- [A-Z]
+]]
+res, _ = pg.parse("AA A", grammar) -- outputs {rule="WORD", "AA"}
+```
 ### Special rules
 
 There are two special rules used by the grammar:
@@ -307,23 +338,32 @@ Error #2: Expected stmtsequence on line 1(col 9)
 Error #3: Expected 'end' on line 1(col 9)
 -- ast:
 rule='program',
+pos=1,
 {
          rule='stmtsequence',
+         pos=1,
          {
                   rule='statement',
+                  pos=1,
                   {
                            rule='ifstmt',
+                           pos=1,
                            'if',
                            {
                                     rule='exp',
+                                    pos=4,
                                     {
                                              rule='simpleexp',
+                                             pos=4,
                                              {
                                                       rule='term',
+                                                      pos=4,
                                                       {
                                                                rule='factor',
+                                                               pos=4,
                                                                {
                                                                         rule='IDENTIFIER',
+                                                                        pos=4,
                                                                         'a',
                                                                },
                                                       },
