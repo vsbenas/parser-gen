@@ -561,10 +561,7 @@ end
 
 
 
-<<<<<<< HEAD
+
 local pg = {compile=compile, setlabels=setlabels, parse=parse,follow=follow, calcline = peg.calcline, usenodes = usenodes}
-=======
-local pg = {compile=compile, setlabels=setlabels, parse=parse, calcline = calcline, usenodes = usenodes}
->>>>>>> 5223f9825266c41400ad0704b15a1412353f3bef
 
 return pg
