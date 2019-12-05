@@ -35,6 +35,7 @@ local filenames = {
 'files.lua',
 }
 local errs = 0
+
 for k,v in ipairs(filenames) do
 	local filename = "lua-5.3.4-tests/"..v
 	local f = assert(io.open(filename, "r"))

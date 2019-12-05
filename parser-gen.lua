@@ -550,6 +550,9 @@ local function parse (input, grammar, errorfunction)
 	errors = {}
 	-- end
 	local r, e, sfail = m.match(grammar,input)
+	if not sfail then
+		sfail=""
+	end
 	if not r then
 		recorderror(#input - #sfail, e)
 	end

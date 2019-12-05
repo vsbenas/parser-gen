@@ -4,6 +4,7 @@ Based on https://github.com/antlr/grammars-v4/blob/master/lua/Lua.g4 and https:/
 ]==]
 package.path = package.path .. ";../?.lua"
 local pg = require "parser-gen"
+local peg = require "peg-parser"
 function equals(s,i,a,b) return #a == #b end
 function fixexp (...)
   local exp = {...}
@@ -287,5 +288,16 @@ local function parse (input)
 	errnr = 1
 	local ast, errs = pg.parse(input,grammar,err)
 	return ast, errs
+end
+if arg[1] then
+-- argument must be in quotes if it contains spaces
+	res, errs = parse(arg[1])
+	if not errs then
+		print("Success")
+	else
+		print("Fail")
+	end
+	--peg.print_r(errs)
+	
 end
 return {parse=parse}
